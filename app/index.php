@@ -25,6 +25,8 @@
         <option value="square">正方形</option>
         <option value="portrait">スマホ動画</option>
     </select>
+
+    <script src="./js/face-api.min.js"></script>
     <script>
         let mediaRecorder;
         let preview = document.getElementById('preview');
@@ -37,6 +39,12 @@
         let videoSource = document.getElementById('videoSource');
         let videoQuality = document.getElementById('videoQuality');
         let sessionId = '';
+
+        async function loadModels() {
+            await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+            await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+            await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+        }
 
         function loadSettings() {
             if (localStorage.getItem('audioSource')) {
@@ -125,7 +133,7 @@
             preview.srcObject = stream;
 
             // 動画をキャンバスに描画
-            function draw() {
+            async function draw() {
                 if (preview.readyState === preview.HAVE_ENOUGH_DATA) {
                     const videoAspectRatio = preview.videoWidth / preview.videoHeight;
                     const canvasAspectRatio = canvas.width / canvas.height;
@@ -144,7 +152,17 @@
                     }
 
                     ctx.drawImage(preview, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+
+                    // 顔認識
+                    const detections = await faceapi.detectAllFaces(preview, new faceapi.TinyFaceDetectorOptions());
+                    if (detections.length > 0) {
+                        console.log(canvas, detections)
+                        faceapi.draw.drawDetections(canvas, detections);
+                    } else {
+                        console.log('No detections');
+                    }
                 }
+                // 100msまってから再描画
                 requestAnimationFrame(draw);
             }
             draw();
@@ -245,7 +263,7 @@
         videoQuality.addEventListener('change', startPreview);
 
         getDevices();
-        startPreview();  // ページを開いたらすぐにプレビューを開始
+        loadModels().then(startPreview);  // モデルをロードしてからプレビューを開始
     </script>
 </body>
 </html>
