@@ -162,8 +162,13 @@
                         console.log('No detections');
                     }
                 }
-                // 100msまってから再描画
+
                 requestAnimationFrame(draw);
+
+                // // 100msまってから再描画
+                // setTimeout(() => {
+                //     requestAnimationFrame(draw);
+                // }, 100);
             }
             draw();
         }
