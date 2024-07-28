@@ -6,14 +6,17 @@
     <title>Video Recorder</title>
 </head>
 <body>
-    <h1>Video Recorder</h1>
-    <div style="position: relative;">
-        <video id="preview" autoplay muted playsinline style="opacity: 0; width: 100%; height: auto;"></video>
-        <canvas id="canvas" style="position: absolute; top: 0; left: 0;"></canvas>
+    <div style="max-width: 540px; margin: 0 auto;">
+        <div style="position: relative; width: 100%; height: auto;">
+            <video id="preview" autoplay muted playsinline style="position: absolute; top: 0; left: 0; opacity: 0; width: 100%; height: auto;"></video>
+            <canvas id="canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: auto;"></canvas>
+        </div>
+        <div style="position: absolute; bottom: 0; left: 0; width: 100%; display: flex; justify-content: center; gap: 10px; z-index: 100;">
+            <button id="startBtn">Start Recording</button>
+            <button id="stopBtn" disabled>Stop Recording</button>
+        </div>
     </div>
-    <button id="startBtn">Start Recording</button>
-    <button id="stopBtn" disabled>Stop Recording</button>
-    <p>メモリ使用状況: <span id="memoryUsage">0 MB</span></p>
+
 
     <script>
         let mediaRecorder;
@@ -22,7 +25,6 @@
         let ctx = canvas.getContext('2d');
         let startBtn = document.getElementById('startBtn');
         let stopBtn = document.getElementById('stopBtn');
-        let memoryUsageElement = document.getElementById('memoryUsage');
         let sessionId = '';
 
         async function startPreview() {
@@ -49,15 +51,15 @@
             if (isMobile) {
                 preview.style.transform = 'rotate(90deg)';
                 preview.style.transformOrigin = 'center center';
-                preview.style.width = `${height}px`;
-                preview.style.height = `${width}px`;
+                preview.style.width = '100%';
+                preview.style.height = 'auto';
                 preview.style.position = 'absolute';
                 preview.style.top = '50%';
                 preview.style.left = '50%';
                 preview.style.transform = 'translate(-50%, -50%) rotate(90deg)';
             } else {
-                preview.style.width = `${width}px`;
-                preview.style.height = `${height}px`;
+                preview.style.width = '100%';
+                preview.style.height = 'auto';
             }
 
             // 動画をキャンバスに描画
@@ -99,8 +101,6 @@
             startBtn.disabled = true;
             stopBtn.disabled = false;
 
-            // メモリ使用状況の表示を開始
-            setInterval(updateMemoryUsage, 1000);
         }
 
         function handleDataAvailable(event) {
@@ -134,16 +134,6 @@
                 console.error('Failed to upload chunk:', response.statusText);
             } else {
                 console.log('Chunk uploaded successfully');
-            }
-        }
-
-        function updateMemoryUsage() {
-            if (performance.memory) {
-                console.log('メモリ更新');
-                const usedJSHeapSize = performance.memory.usedJSHeapSize / 1024 / 1024;  // Convert to MB
-                memoryUsageElement.textContent = `${Math.round(usedJSHeapSize)} MB`;
-            } else {
-                memoryUsageElement.textContent = 'N/A';
             }
         }
 
