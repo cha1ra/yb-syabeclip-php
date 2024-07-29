@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Recorder</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p&display=swap" rel="stylesheet">
 </head>
 <body class="h-screen m-0">
     <div class="h-screen grid grid-cols-1 md:grid-cols-2 m-0 mx-auto">
@@ -16,6 +19,9 @@
                 </video>
                 <canvas id="videoCanvas" width="1080" height="1920" class="absolute top-0 left-0" style="max-width: 360px;"></canvas>
             </div>
+            <div class="w-full h-10 bg-gray-300">
+                <canvas id="audioCanvas" width="1080" height="100"></canvas>
+            </div>
             <!-- <canvas id="videoCanvas" width="1080" height="1920" style="max-width: 360px;"></canvas> -->
             <div class="absolute bottom-2 left-0 w-full flex justify-center gap-2 z-10">
                 <button id="startBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md">Start</button>
@@ -24,6 +30,7 @@
             <div class="absolute bottom-10 left-0 w-full flex justify-center gap-2 z-10">
                 <input type="range" id="seekBar" min="0" max="100" value="0" class="w-full">
             </div>
+
         </div>
         <div class="relative w-full h-screen p-4">
             <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full"></pre>
@@ -36,8 +43,16 @@ const transcripts = [
     "startTime": "2024-07-29T13:40:57.469Z",
     "endTime": "2024-07-29T13:41:02.192Z",
     "startOffset": 1709,
+    "endOffset": 4500,
+    "transcript": "スタートアップをやってて\n苦しかった事っていうのは"
+  },
+  {
+    "startTime": "2024-07-29T13:40:57.469Z",
+    "endTime": "2024-07-29T13:41:02.192Z",
+    "startOffset": 4500,
     "endOffset": 6432,
-    "transcript": "スタートアップをやってて\n苦しかった事っていうのは\nいっぱいあるわけなんですよね"
+    "transcript": "いっぱいあるわけなんですよね",
+    "zoom": 1.5
   },
   {
     "startTime": "2024-07-29T13:41:05.066Z",
@@ -45,7 +60,6 @@ const transcripts = [
     "startOffset": 9306,
     "endOffset": 10322,
     "transcript": "やっぱりなんだろうな",
-    "zoom": 1.5
   },
   {
     "startTime": "2024-07-29T13:41:07.562Z",
@@ -73,7 +87,7 @@ const transcripts = [
     "endTime": "2024-07-29T13:41:38.448Z",
     "startOffset": 36059,
     "endOffset": 42688,
-    "transcript": "成功した時は全部自分のものになるし\n逆に言うと何か失敗しても全部 責任"
+    "transcript": "成功した時は全部自分のものになるし\n逆に言うと何か失敗��も全部 責任"
   },
   {
     "startTime": "2024-07-29T13:41:40.345Z",
@@ -108,42 +122,101 @@ let mediaRecorder;
 let recordedChunks = [];
 
 const draw = () => {
-    if (isPlaying) {
-        const { transcript, zoom = 1 } = transcripts[currentTranscriptIndex];
+    const { transcript, zoom = 1 } = transcripts[currentTranscriptIndex];
 
 
-        // 動画をズームして描画
-        const videoWidth = video.videoWidth;
-        const videoHeight = video.videoHeight;
-        const zoomedWidth = videoWidth / zoom;
-        const zoomedHeight = videoHeight / zoom;
-        const offsetX = (videoWidth - zoomedWidth) / 2;
-        const offsetY = (videoHeight - zoomedHeight) / 2;
-        context.drawImage(video, offsetX, offsetY, zoomedWidth, zoomedHeight, 0, 0, canvas.width, canvas.height);
+    // 動画をズームして描画
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+    const zoomedWidth = videoWidth / zoom;
+    const zoomedHeight = videoHeight / zoom;
+    const offsetX = (videoWidth - zoomedWidth) / 2;
+    const offsetY = (videoHeight - zoomedHeight) / 2;
+    context.drawImage(video, offsetX, offsetY, zoomedWidth, zoomedHeight, 0, 0, canvas.width, canvas.height);
 
 
-        const padding = 32;
-        const fontSize = 64;
-        const lines = transcript.split('\n');
-        const lineHeight = fontSize + padding;
-        const textHeight = lineHeight * lines.length;
-        context.font = `${fontSize}px Arial`;
-        context.fillStyle = "rgba(0, 0, 0, 0.5)"; // 黒透過背景
-        const yPosition = canvas.height * (2 / 3); // 下から1/3の位置
-        context.fillRect(0, yPosition - textHeight / 2, canvas.width, textHeight); // 背景の幅はcanvas幅いっぱいに
-        context.fillStyle = "white";
-        context.textAlign = "center"; // 文字を中央寄せ
-        context.textBaseline = "middle"; // 文字の垂直方向を中央寄せ
+    const padding = 32;
+    const fontSize = 64;
+    const lines = transcript.split('\n');
+    const lineHeight = fontSize + padding;
+    const textHeight = lineHeight * lines.length;
+    context.font = `${fontSize}px 'M PLUS 1p'`;
+    context.fillStyle = "rgba(0, 0, 0, 0.5)"; // 黒透過背景
+    const yPosition = canvas.height * (3 / 4); // 下から1/4の位置
+    context.fillRect(0, yPosition - textHeight / 2, canvas.width, textHeight); // 背景の幅はcanvas幅いっぱいに
+    context.fillStyle = "white";
+    context.textAlign = "center"; // 文字を中央寄せ
+    context.textBaseline = "middle"; // 文字の垂直方向を中央寄せ
+    // 改行文字で分割して描画
+    lines.forEach((line, index) => {
+        context.fillText(line, canvas.width / 2, yPosition + index * lineHeight - (lines.length - 1) * lineHeight / 2);
+    });
+
+    // 左上にタイトルテロップを描画
+    const title = "今回のテーマ"
+    const titleFontSize = 36;
+    const tiltlePadding = 8;
+
+    const subTitle = "スタートアップをやってみてどうですか？";
+    const subTitleFontSize = 48;
+    
+    context.imageSmoothingEnabled = true; // フォントをスムーズにする
+    context.font = `${subTitleFontSize}px 'M PLUS 1p'`;
+    const subTitleTextWidth = context.measureText(subTitle).width;
+    const rectWidth = subTitleTextWidth + padding * 2;
+    const rectHeight = subTitleFontSize + padding * 2;
+    const rectX = padding;
+    const rectY = 200;
+
+    // 影をつける
+    context.shadowColor = "rgba(0, 0, 0, 0.5)";
+    context.shadowBlur = 10;
+    context.shadowOffsetX = 5;
+    context.shadowOffsetY = 5;
 
 
+    context.textAlign = "left"; // 文字を左寄せ
+    context.textBaseline = "top"; // 文字の垂直方向を中央寄せ
 
-        // 改行文字で分割して描画
-        lines.forEach((line, index) => {
-            context.fillText(line, canvas.width / 2, yPosition + index * lineHeight - (lines.length - 1) * lineHeight / 2);
-        });
 
-        requestAnimationFrame(draw);
+    context.font = `${titleFontSize}px 'M PLUS 1p'`;
+    const titleTextWidth = context.measureText(title).width;
+    const titleRectWidth = titleTextWidth + tiltlePadding * 2;
+    const titleRectHeight = titleFontSize + tiltlePadding * 2;
+
+    // タイトルを描画
+    context.font = `${titleFontSize}px 'M PLUS 1p'`;
+    context.fillStyle = "black"; // 黒背景
+    context.fillRect(rectX + padding - tiltlePadding, rectY - titleFontSize - tiltlePadding * 3, titleRectWidth, titleRectHeight);
+    context.fillStyle = "white";
+    context.fillText(title, rectX + padding, rectY - titleFontSize - tiltlePadding * 2); 
+
+    // 角丸の矩形を描画する関数
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
     }
+
+    // 角丸の矩形を描画
+    const radius = 20; // 角丸の半径
+    context.fillStyle = "rgba(255, 255, 255, 1)"; // 白背景
+    drawRoundedRect(context, rectX, rectY, rectWidth, rectHeight, radius);
+    context.fill();
+    context.font = `${subTitleFontSize}px 'M PLUS 1p'`;
+    context.shadowColor = "transparent"; // 影をリセット
+    context.fillStyle = "black";
+    context.fillText(subTitle, rectX + padding, rectY + padding); 
+
+    requestAnimationFrame(draw);
 };
 
 const playSegment = (index) => {
@@ -273,7 +346,10 @@ seekBar.addEventListener('input', () => {
     video.currentTime = time;
 });
 
-draw()
+video.addEventListener('loadeddata', () => {
+    draw();
+});
+
 </script>
 
 </body>
