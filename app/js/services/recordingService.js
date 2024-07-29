@@ -1,5 +1,8 @@
 let mediaRecorder;
 let sessionId = '';
+let recognition;
+let transcripts = [];
+let startTime;
 
 export async function startPreview() {
     const preview = document.getElementById('preview');
@@ -75,6 +78,8 @@ export async function startRecording() {
     sessionId = new Date().toISOString().replace(/[-:.]/g, "");
     document.getElementById('startBtn').disabled = true;
     document.getElementById('stopBtn').disabled = false;
+
+    startSpeechRecognition();
 }
 
 function handleDataAvailable(event) {
@@ -85,12 +90,16 @@ function handleDataAvailable(event) {
 
 export function stopRecording() {
     mediaRecorder.stop();
+    recognition.stop();
     document.getElementById('startBtn').disabled = false;
     document.getElementById('stopBtn').disabled = true;
 
     mediaRecorder.onstop = () => {
         mediaRecorder.ondataavailable = handleDataAvailable;
     };
+
+    console.log(JSON.stringify(transcripts, null, 2));
+    document.getElementById('jsonDisplay').textContent = JSON.stringify(transcripts, null, 2);
 }
 
 async function uploadChunk(chunk) {
@@ -108,4 +117,41 @@ async function uploadChunk(chunk) {
     } else {
         console.log('Chunk uploaded successfully');
     }
+}
+
+function startSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    // recognition.continuous = true;
+    // 一時的な認識結果を無効にする
+    recognition.interimResults = false;
+    recognition.lang = 'ja-JP';
+
+    recognition.onspeechstart = () => {
+        console.log('speechstart');
+        startTime = new Date().toISOString();
+    };
+
+    recognition.onresult = (event) => {
+        const result = event.results[event.results.length - 1];
+        if (result.isFinal) { // 確定になったタイミングでpush
+            const transcript = result[0].transcript;
+            const endTime = new Date().toISOString();
+            transcripts.push({
+                startTime: startTime,
+                endTime: endTime,
+                transcript: transcript
+            });
+            console.log(JSON.stringify(transcripts, null, 2));
+            document.getElementById('jsonDisplay').textContent = JSON.stringify(transcripts, null, 2);
+        }
+    };
+
+    recognition.onend = () => {
+        if (document.getElementById('stopBtn').disabled === false) {
+            recognition.start();
+        }
+    };
+
+    recognition.start();
 }
