@@ -14,7 +14,7 @@
         <div class="h-screen w-[56.25vh] m-0 mx-auto relative">
             <div class="relative w-full h-auto">
                 <video id="videoElement" width='320' height='240' controls>
-                    <source src='./uploads/20240729T134055760Z.webm' type='video/webm'>
+                    <source src='./uploads/20240729T163749467Z.webm' type='video/webm'>
                     Your browser does not support the video tag.
                 </video>
                 <canvas id="videoCanvas" width="1080" height="1920" class="absolute top-0 left-0" style="max-width: 360px;"></canvas>
@@ -27,10 +27,6 @@
                 <button id="startBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md">Start</button>
                 <button id="stopBtn" class="bg-red-500 text-white px-4 py-2 rounded-md">Stop</button>
             </div>
-            <div class="absolute bottom-10 left-0 w-full flex justify-center gap-2 z-10">
-                <input type="range" id="seekBar" min="0" max="100" value="0" class="w-full">
-            </div>
-
         </div>
         <div class="relative w-full h-screen p-4">
             <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full"></pre>
@@ -40,61 +36,130 @@
 <script>
 const transcripts = [
   {
-    "startTime": "2024-07-29T13:40:57.469Z",
-    "endTime": "2024-07-29T13:41:02.192Z",
-    "startOffset": 1709,
-    "endOffset": 4500,
-    "transcript": "スタートアップをやってて\n苦しかった事っていうのは"
+    "startTime": "2024-07-29T16:37:52.211Z",
+    "endTime": "2024-07-29T16:37:56.931Z",
+    "startOffset": 2744,
+    "endOffset": 7464,
+    "transcript": "だって私がこのショート動画アプリを作った理由"
   },
   {
-    "startTime": "2024-07-29T13:40:57.469Z",
-    "endTime": "2024-07-29T13:41:02.192Z",
-    "startOffset": 4500,
-    "endOffset": 6432,
-    "transcript": "いっぱいあるわけなんですよね",
-    "zoom": 1.5
+    "startTime": "2024-07-29T16:37:57.867Z",
+    "endTime": "2024-07-29T16:37:59.576Z",
+    "startOffset": 8400,
+    "endOffset": 10109,
+    "transcript": "についてお話をします"
   },
   {
-    "startTime": "2024-07-29T13:41:05.066Z",
-    "endTime": "2024-07-29T13:41:06.082Z",
-    "startOffset": 9306,
-    "endOffset": 10322,
-    "transcript": "やっぱりなんだろうな",
+    "startTime": "2024-07-29T16:38:02.411Z",
+    "endTime": "2024-07-29T16:38:06.736Z",
+    "startOffset": 12944,
+    "endOffset": 17269,
+    "transcript": "このショート動画アプリを作った理由は"
   },
   {
-    "startTime": "2024-07-29T13:41:07.562Z",
-    "endTime": "2024-07-29T13:41:09.968Z",
-    "startOffset": 11802,
-    "endOffset": 14208,
-    "transcript": "自分の"
+    "startTime": "2024-07-29T16:38:08.499Z",
+    "endTime": "2024-07-29T16:38:10.821Z",
+    "startOffset": 19032,
+    "endOffset": 21354,
+    "transcript": "動画の作るっていうところの"
   },
   {
-    "startTime": "2024-07-29T13:41:13.784Z",
-    "endTime": "2024-07-29T13:41:20.461Z",
-    "startOffset": 18024,
-    "endOffset": 24701,
-    "transcript": "好きな事っていうのできるって言うのは\nやっぱりいいところだと思うんですよ\nこういう風に起業するっていう時のね"
+    "startTime": "2024-07-29T16:38:14.650Z",
+    "endTime": "2024-07-29T16:38:19.253Z",
+    "startOffset": 25183,
+    "endOffset": 29786,
+    "transcript": "元々の意義っていうのを皆さんと考えたい"
   },
   {
-    "startTime": "2024-07-29T13:41:21.404Z",
-    "endTime": "2024-07-29T13:41:29.268Z",
-    "startOffset": 25644,
-    "endOffset": 33508,
-    "transcript": "やっぱり難しいのが全部自分の責任になるって言うのも\nまた これも事実なんですよね"
+    "startTime": "2024-07-29T16:38:21.077Z",
+    "endTime": "2024-07-29T16:38:24.186Z",
+    "startOffset": 31610,
+    "endOffset": 34719,
+    "transcript": "そのためにこのような仕組み っていうのを作りました"
   },
   {
-    "startTime": "2024-07-29T13:41:37.157Z",
-    "endTime": "2024-07-29T13:41:38.448Z",
-    "startOffset": 36059,
-    "endOffset": 42688,
-    "transcript": "成功した時は全部自分のものになるし\n逆に言うと何か失敗��も全部 責任"
+    "startTime": "2024-07-29T16:38:25.918Z",
+    "endTime": "2024-07-29T16:38:28.843Z",
+    "startOffset": 36451,
+    "endOffset": 39376,
+    "transcript": "ショート動画って元々は"
   },
   {
-    "startTime": "2024-07-29T13:41:40.345Z",
-    "endTime": "2024-07-29T13:41:45.784Z",
-    "startOffset": 44585,
-    "endOffset": 50024,
-    "transcript": "ここがやっぱり難しいところですし\n逆に面白いところでもあるという風に\n僕は思ってますね"
+    "startTime": "2024-07-29T16:38:32.147Z",
+    "endTime": "2024-07-29T16:38:37.065Z",
+    "startOffset": 42680,
+    "endOffset": 47598,
+    "transcript": "自分が取りたいなと思った タイミングに取れる"
+  },
+  {
+    "startTime": "2024-07-29T16:38:39.235Z",
+    "endTime": "2024-07-29T16:38:42.671Z",
+    "startOffset": 49768,
+    "endOffset": 53204,
+    "transcript": "それが元々 証拠とかはずだったはずなんですよ"
+  },
+  {
+    "startTime": "2024-07-29T16:38:45.015Z",
+    "endTime": "2024-07-29T16:38:48.854Z",
+    "startOffset": 55548,
+    "endOffset": 59387,
+    "transcript": "だけど今の形だと"
+  },
+  {
+    "startTime": "2024-07-29T16:38:49.898Z",
+    "endTime": "2024-07-29T16:38:52.748Z",
+    "startOffset": 60431,
+    "endOffset": 63281,
+    "transcript": "ショート動画用の台本を練る"
+  },
+  {
+    "startTime": "2024-07-29T16:38:55.867Z",
+    "endTime": "2024-07-29T16:38:55.867Z",
+    "startOffset": 66400,
+    "endOffset": 66400,
+    "transcript": "ショート動画用の撮影をする"
+  },
+  {
+    "startTime": "2024-07-29T16:38:57.315Z",
+    "endTime": "2024-07-29T16:38:58.361Z",
+    "startOffset": 67848,
+    "endOffset": 68894,
+    "transcript": "そして 編集"
+  },
+  {
+    "startTime": "2024-07-29T16:38:59.964Z",
+    "endTime": "2024-07-29T16:39:07.101Z",
+    "startOffset": 70497,
+    "endOffset": 77634,
+    "transcript": "このような形で結局動画にするまでにいっぱい時間をかけないといろんな人に見てもらえない"
+  },
+  {
+    "startTime": "2024-07-29T16:39:08.043Z",
+    "endTime": "2024-07-29T16:39:10.451Z",
+    "startOffset": 78576,
+    "endOffset": 80984,
+    "transcript": "こんな状況があります"
+  },
+  {
+    "startTime": "2024-07-29T16:39:11.256Z",
+    "endTime": "2024-07-29T16:39:13.888Z",
+    "startOffset": 81789,
+    "endOffset": 84421,
+    "transcript": "この状況を私は"
+  },
+  {
+    "startTime": "2024-07-29T16:39:15.198Z",
+    "endTime": "2024-07-29T16:39:15.198Z",
+    "startOffset": 85731,
+    "endOffset": 85731,
+    "transcript": "変えたい"
+  },
+  {
+    "startTime": "2024-07-29T16:39:18.317Z",
+    "endTime": "2024-07-29T16:39:22.242Z",
+    "startOffset": 88850,
+    "endOffset": 92775,
+    "transcript": "だからこそこんなアプリケーションを作っています"
   }
 ]
 
@@ -228,11 +293,9 @@ const playSegment = (index) => {
 
     const { startOffset, endOffset } = transcripts[index];
     video.currentTime = startOffset / 1000;
-    video.play();
 
     const checkTime = () => {
         if (video.currentTime >= endOffset / 1000) {
-            video.pause();
             currentTranscriptIndex++;
             playSegment(currentTranscriptIndex);
         } else {
@@ -240,6 +303,8 @@ const playSegment = (index) => {
         }
     };
 
+    // シークが完了するのを待たずに再生を開始
+    video.play();
     checkTime();
 };
 
