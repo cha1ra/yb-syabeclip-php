@@ -3,6 +3,7 @@ let sessionId = '';
 let recognition;
 let transcripts = [];
 let startTime;
+let recordingStartTime; // 撮影開始日時を保持する変数を追加
 
 export async function startPreview() {
     const preview = document.getElementById('preview');
@@ -76,8 +77,11 @@ export async function startRecording() {
     mediaRecorder.start(10000);
 
     sessionId = new Date().toISOString().replace(/[-:.]/g, "");
+    recordingStartTime = new Date(); // 撮影開始日時を設定
     document.getElementById('startBtn').disabled = true;
+    document.getElementById('startBtn').classList.add('hidden');
     document.getElementById('stopBtn').disabled = false;
+    document.getElementById('stopBtn').classList.remove('hidden');
 
     startSpeechRecognition();
 }
@@ -92,7 +96,9 @@ export function stopRecording() {
     mediaRecorder.stop();
     recognition.stop();
     document.getElementById('startBtn').disabled = false;
+    document.getElementById('startBtn').classList.remove('hidden');
     document.getElementById('stopBtn').disabled = true;
+    document.getElementById('stopBtn').classList.add('hidden');
 
     mediaRecorder.onstop = () => {
         mediaRecorder.ondataavailable = handleDataAvailable;
@@ -137,9 +143,13 @@ function startSpeechRecognition() {
         if (result.isFinal) { // 確定になったタイミングでpush
             const transcript = result[0].transcript;
             const endTime = new Date().toISOString();
+            const startOffset = new Date(startTime).getTime() - recordingStartTime.getTime();
+            const endOffset = new Date(endTime).getTime() - recordingStartTime.getTime();
             transcripts.push({
                 startTime: startTime,
                 endTime: endTime,
+                startOffset: startOffset,
+                endOffset: endOffset,
                 transcript: transcript
             });
             console.log(JSON.stringify(transcripts, null, 2));
