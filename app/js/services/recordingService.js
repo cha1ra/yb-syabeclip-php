@@ -133,8 +133,8 @@ function startSpeechRecognition() {
     recognition.interimResults = false;
     recognition.lang = 'ja-JP';
 
-    recognition.onspeechstart = () => {
-        console.log('speechstart');
+    recognition.onsoundstart = () => {
+        console.log('soundstart');
         startTime = new Date().toISOString();
     };
 

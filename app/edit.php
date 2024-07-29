@@ -11,7 +11,7 @@
         <div class="h-screen w-[56.25vh] m-0 mx-auto relative">
             <div class="relative w-full h-auto">
                 <video id="videoElement" width='320' height='240' controls>
-                    <source src='./uploads/20240729T030925265Z.webm' type='video/webm'>
+                    <source src='./uploads/20240729T101803725Z.webm' type='video/webm'>
                     Your browser does not support the video tag.
                 </video>
                 <!-- <canvas id="videoCanvas" width="1920" height="1080" class="absolute top-0 left-0"></canvas> -->
@@ -33,32 +33,32 @@
 <script>
 const transcripts = [
   {
-    "startTime": "2024-07-29T03:09:27.019Z",
-    "endTime": "2024-07-29T03:09:28.866Z",
-    "startOffset": 1754,
-    "endOffset": 3601,
-    "transcript": "これでお願いします"
+    "startTime": "2024-07-29T10:18:04.871Z",
+    "endTime": "2024-07-29T10:18:06.266Z",
+    "startOffset": 1145,
+    "endOffset": 2540,
+    "transcript": "こんにちは"
   },
   {
-    "startTime": "2024-07-29T03:09:30.075Z",
-    "endTime": "2024-07-29T03:09:31.719Z",
-    "startOffset": 4810,
-    "endOffset": 6454,
-    "transcript": "これで行きますでしょうか"
+    "startTime": "2024-07-29T10:18:07.216Z",
+    "endTime": "2024-07-29T10:18:09.289Z",
+    "startOffset": 3490,
+    "endOffset": 5563,
+    "transcript": "こんにちは じゃない そうです"
   },
   {
-    "startTime": "2024-07-29T03:09:32.849Z",
-    "endTime": "2024-07-29T03:09:33.984Z",
-    "startOffset": 7584,
-    "endOffset": 8719,
-    "transcript": "いいね そうですね"
+    "startTime": "2024-07-29T10:18:11.387Z",
+    "endTime": "2024-07-29T10:18:13.575Z",
+    "startOffset": 7661,
+    "endOffset": 9849,
+    "transcript": "なかなか難しいものですね"
   },
   {
-    "startTime": "2024-07-29T03:09:34.943Z",
-    "endTime": "2024-07-29T03:09:35.691Z",
-    "startOffset": 9678,
-    "endOffset": 10426,
-    "transcript": "いいですね"
+    "startTime": "2024-07-29T10:18:14.677Z",
+    "endTime": "2024-07-29T10:18:20.176Z",
+    "startOffset": 10951,
+    "endOffset": 16450,
+    "transcript": "というところで今日も難しいことを一緒にやっていこうと思います"
   }
 ]
 
@@ -68,16 +68,68 @@ const video = document.getElementById('videoElement');
 const canvas = document.getElementById('videoCanvas');
 const context = canvas.getContext('2d');
 const seekBar = document.getElementById('seekBar');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+
+let currentTranscriptIndex = 0;
+let isPlaying = false;
 
 const draw = () => {
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    requestAnimationFrame(draw);
+    if (isPlaying) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // テキストを描画
+        const { transcript } = transcripts[currentTranscriptIndex];
+        const padding = 32;
+        const fontSize = 64;
+        const textHeight = fontSize + padding * 2;
+        context.font = `${fontSize}px Arial`;
+        context.fillStyle = "rgba(0, 0, 0, 0.5)"; // 黒透過背景
+        const yPosition = canvas.height * (2 / 3); // 下から1/3の位置
+        context.fillRect(0, yPosition - textHeight / 2, canvas.width, textHeight); // 背景の幅はcanvas幅いっぱいに
+        context.fillStyle = "white";
+        context.textAlign = "center"; // 文字を中央寄せ
+        context.textBaseline = "middle"; // 文字の垂直方向を中央寄せ
+        context.fillText(transcript, canvas.width / 2, yPosition);
+        requestAnimationFrame(draw);
+    }
 };
 
-video.addEventListener('play', draw);
-video.addEventListener('pause', draw);
-video.addEventListener('ended', draw);
-draw();
+const playSegment = (index) => {
+    if (index >= transcripts.length) {
+        isPlaying = false;
+        return;
+    }
+
+    const { startOffset, endOffset } = transcripts[index];
+    video.currentTime = startOffset / 1000;
+    video.play();
+
+    const checkTime = () => {
+        if (video.currentTime >= endOffset / 1000) {
+            video.pause();
+            currentTranscriptIndex++;
+            playSegment(currentTranscriptIndex);
+        } else {
+            requestAnimationFrame(checkTime);
+        }
+    };
+
+    checkTime();
+};
+
+startBtn.addEventListener('click', () => {
+    if (!isPlaying) {
+        isPlaying = true;
+        currentTranscriptIndex = 0;
+        playSegment(currentTranscriptIndex);
+        draw();
+    }
+});
+
+stopBtn.addEventListener('click', () => {
+    isPlaying = false;
+    video.pause();
+});
 
 video.addEventListener('timeupdate', () => {
     const value = (100 / video.duration) * video.currentTime;
