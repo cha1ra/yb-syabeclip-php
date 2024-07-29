@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,41 +21,34 @@
         <div class="relative w-full h-screen p-4">
             <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full">
 [
-    {
-        "startTime": "2024-07-28T15:40:34.671Z",
-        "endTime": "2024-07-28T15:40:35.863Z",
-        "transcript": "さて"
-    },
-    {
-        "startTime": "2024-07-28T15:40:36.847Z",
-        "endTime": "2024-07-28T15:40:39.438Z",
-        "transcript": "これで話してみようかな というところなんですけども"
-    },
-    {
-        "startTime": "2024-07-28T15:40:40.632Z",
-        "endTime": "2024-07-28T15:40:42.343Z",
-        "transcript": "でこれ どうかなと"
-    },
-    {
-        "startTime": "2024-07-28T15:40:45.192Z",
-        "endTime": "2024-07-28T15:40:49.298Z",
-        "transcript": "いう感じで これでうまくいければ"
-    },
-    {
-        "startTime": "2024-07-28T15:40:50.125Z",
-        "endTime": "2024-07-28T15:40:53.102Z",
-        "transcript": "だいぶ 取るのが速くなるかな という風に思ってますと"
-    },
-    {
-        "startTime": "2024-07-28T15:41:02.273Z",
-        "endTime": "2024-07-28T15:41:04.374Z",
-        "transcript": "タイトルの方が早くなるかな と思ってます"
-    },
-    {
-        "startTime": "2024-07-28T15:41:19.586Z",
-        "endTime": "2024-07-28T15:41:22.175Z",
-        "transcript": "これでどうかなと思ってますが どうでしょうか"
-    }
+  {
+    "startTime": "2024-07-29T03:09:27.019Z",
+    "endTime": "2024-07-29T03:09:28.866Z",
+    "startOffset": 1754,
+    "endOffset": 3601,
+    "transcript": "これでお願いします"
+  },
+  {
+    "startTime": "2024-07-29T03:09:30.075Z",
+    "endTime": "2024-07-29T03:09:31.719Z",
+    "startOffset": 4810,
+    "endOffset": 6454,
+    "transcript": "これで行きますでしょうか"
+  },
+  {
+    "startTime": "2024-07-29T03:09:32.849Z",
+    "endTime": "2024-07-29T03:09:33.984Z",
+    "startOffset": 7584,
+    "endOffset": 8719,
+    "transcript": "いいね そうですね"
+  },
+  {
+    "startTime": "2024-07-29T03:09:34.943Z",
+    "endTime": "2024-07-29T03:09:35.691Z",
+    "startOffset": 9678,
+    "endOffset": 10426,
+    "transcript": "いいですね"
+  }
 ]
             </pre>
         </div>
