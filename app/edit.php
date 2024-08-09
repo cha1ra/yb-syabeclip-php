@@ -235,16 +235,34 @@ createApp({
             
         };
 
+        const MIN_CLIP_DURATION = 10; // 最小クリップ間隔（ミリ秒）
+
         const playSegment = (index) => {
             if (index >= clips.value.length) {
                 isPlaying.value = false;
-                mediaRecorder.value.stop();
+                mediaRecorder.value?.stop();
                 return;
             }
 
             const { startOffset, endOffset } = clips.value[index];
             const video = document.getElementById('videoElement');
-            video.currentTime = startOffset / 1000;
+
+            const setVideoTime = (time) => {
+                video.currentTime = time / 1000;
+            };
+
+            // indexが0ではない場合、前のクリップの終わりとの差分をチェックする。
+            if (index > 0) {
+                const prevClip = clips.value[index - 1];
+                const gap = startOffset - prevClip.endOffset;
+                if (gap > MIN_CLIP_DURATION) {
+                    setVideoTime(startOffset);
+                } else {
+                    console.log('間隔が近いので移動しません');
+                }
+            } else {
+                setVideoTime(startOffset);
+            }
 
             const checkTime = () => {
                 if (video.currentTime >= endOffset / 1000) {
@@ -375,8 +393,8 @@ createApp({
                 transcript: clip.transcript.slice(combinedTranscript.length),
                 phrases: clip.phrases.slice(phraseIndex + 1).map(phrase => ({
                     ...phrase,
-                    transcriptStartOffset: phrase.transcriptStartOffset + splitPhrase.transcriptEndOffset,
-                    transcriptEndOffset: phrase.transcriptEndOffset + splitPhrase.transcriptEndOffset
+                    transcriptStartOffset: phrase.transcriptStartOffset - splitPhrase.transcriptEndOffset - 1,
+                    transcriptEndOffset: phrase.transcriptEndOffset - splitPhrase.transcriptEndOffset - 1
                 }))
             };
 
