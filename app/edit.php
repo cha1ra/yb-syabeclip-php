@@ -96,6 +96,20 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                     <div class="mb-2">
                         <div v-show="currentTranscriptIndex === index">
                             <textarea :value="clip.transcript" @input="updateTranscript(index, $event.target.value)" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                            <div class="mt-2 flex flex-wrap items-center gap-2 relative">
+                                <template v-for="(phrase, phraseIndex) in clip.phrases" :key="phrase.transcriptStartOffset">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer" @click="selectPhrase(clip, phrase)">
+                                        {{ phrase.text }}
+                                    </span>
+                                    <div v-if="phraseIndex < clip.phrases.length - 1" class="h-6 w-0.5 bg-gray-300 mx-1 relative group">
+                                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden group-hover:block bg-white shadow-md rounded px-2 py-1 text-xs">
+                                            <button @click="splitClipAtPhrase(clip, phraseIndex)" class="text-blue-600 hover:text-blue-800">
+                                                分割
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                         <div v-show="currentTranscriptIndex !== index">
                             {{ clip.transcript }}
@@ -336,6 +350,43 @@ createApp({
             }
         };
 
+        const selectPhrase = (clip, phrase) => {
+            const video = document.getElementById('videoElement');
+            const phraseStartTime = clip.startOffset + (phrase.transcriptStartOffset / clip.transcript.length) * (clip.endOffset - clip.startOffset);
+            video.currentTime = phraseStartTime / 1000;
+        };
+
+        const splitClipAtPhrase = (clip, phraseIndex) => {
+            const index = clips.value.findIndex(c => c.uuid === clip.uuid);
+            const splitPhrase = clip.phrases[phraseIndex];
+            const nextPhrase = clip.phrases[phraseIndex + 1];
+            
+            // 分割する位置のオフセットを計算
+            const splitOffset = clip.startOffset + splitPhrase.transcriptEndOffset;
+
+            // phraseIndex までにあるフレーズを結合する
+            const combinedTranscript = clip.phrases.slice(0, phraseIndex + 1).map(phrase => phrase.text).join('');
+
+            const newClip = {
+                ...clip,
+                uuid: generateUUID(),
+                startOffset: splitOffset + 1,
+                endOffset: clip.endOffset,
+                transcript: clip.transcript.slice(combinedTranscript.length),
+                phrases: clip.phrases.slice(phraseIndex + 1).map(phrase => ({
+                    ...phrase,
+                    transcriptStartOffset: phrase.transcriptStartOffset + splitPhrase.transcriptEndOffset,
+                    transcriptEndOffset: phrase.transcriptEndOffset + splitPhrase.transcriptEndOffset
+                }))
+            };
+
+            clip.endOffset = splitOffset;
+            clip.transcript = combinedTranscript;
+            clip.phrases = clip.phrases.slice(0, phraseIndex + 1);
+
+            clips.value.splice(index + 1, 0, newClip);
+        };
+
         onMounted(() => {
             const video = document.getElementById('videoElement');
             const canvas = document.getElementById('videoCanvas');
@@ -468,7 +519,9 @@ createApp({
             playClip,
             applyOffset,
             updateTranscript,
-            toggleZoom
+            toggleZoom,
+            selectPhrase,
+            splitClipAtPhrase
         };
     }
 }).mount('#app');
