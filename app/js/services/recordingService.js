@@ -106,6 +106,31 @@ export function stopRecording() {
 
     console.log(JSON.stringify(transcripts, null, 2));
     document.getElementById('jsonDisplay').textContent = JSON.stringify(transcripts, null, 2);
+
+    // データベースに結果を保存 する関数を実行
+    storeData(`${sessionId}.webm`, transcripts);
+}
+
+async function storeData(sessionId, transcripts) {
+    const formData = new FormData();
+    formData.append('src', sessionId);
+    formData.append('transcripts', JSON.stringify(transcripts));
+
+    const response = await fetch('store.php', {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        console.error('Failed to store data:', response.statusText);
+    } else {
+        const responseData = await response.json();
+        if (responseData.error) {
+            console.error('Error storing data:', responseData.error);
+        } else {
+            console.log('Data stored successfully:', responseData);
+        }
+    }
 }
 
 async function uploadChunk(chunk) {
@@ -125,13 +150,23 @@ async function uploadChunk(chunk) {
     }
 }
 
+const generateUUID = () => {
+    const now = Date.now().toString(16);
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    }) + '-' + now;
+};
+
 function startSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
-    // recognition.continuous = true;
-    // 一時的な認識結果を無効にする
-    recognition.interimResults = false;
+    recognition.interimResults = true; // 一時的な認識結果を有効にする
     recognition.lang = 'ja-JP';
+
+    // 一時的な結果を基に文節ごとの開始・終了時間を保持する
+    let phrases = [];
+    let isFirstPhraseAppeared = false; // 初めて文節が出力されたかどうかを保持する変数
 
     recognition.onspeechstart = () => {
         console.log('speechstart');
@@ -139,6 +174,46 @@ function startSpeechRecognition() {
     };
 
     recognition.onresult = (event) => {
+
+        // transcriptの開始offset
+        const offsetTime = new Date(startTime).getTime() - recordingStartTime.getTime();
+
+        const handleFirstPhrase = () => {
+            isFirstPhraseAppeared = true;
+            const newPhrase = event.results[0][0].transcript;
+            const endTime = new Date().toISOString();
+            const endOffset = new Date(endTime).getTime() - recordingStartTime.getTime();
+            phrases.push({
+                text: newPhrase,
+                transcriptStartOffset: 0,
+                transcriptEndOffset: endOffset - offsetTime
+            });
+        };
+
+        const handleNewPhrase = () => {
+            const currentTranscript = event.results[0][0].transcript;
+            const totalLength = phrases.reduce((sum, phrase) => sum + phrase.text.length, 0);
+            const newPhrase = currentTranscript.slice(totalLength);
+            const previousPhraseEndOffset = phrases[phrases.length - 1].transcriptEndOffset;
+            const endTime = new Date().toISOString();
+            const endOffset = new Date(endTime).getTime() - recordingStartTime.getTime();
+            phrases.push({
+                text: newPhrase,
+                transcriptStartOffset: previousPhraseEndOffset + 1,
+                transcriptEndOffset: endOffset - offsetTime
+            });
+        };
+
+        // 文節ごとに区切った結果表示を擬似的に実現するロジック
+        // 1. event.results.length が 初めて2 になった場合、初めて文節が出力されたと判断する
+        // 2. その後、event.results.length が 1になるタイミングで再度保持する
+        if (event.results.length === 2 && !isFirstPhraseAppeared) {
+            handleFirstPhrase();
+        }
+        if (isFirstPhraseAppeared && event.results.length === 1) {
+            handleNewPhrase();
+        }
+
         const result = event.results[event.results.length - 1];
         if (result.isFinal) { // 確定になったタイミングでpush
             const transcript = result[0].transcript;
@@ -146,14 +221,19 @@ function startSpeechRecognition() {
             const startOffset = new Date(startTime).getTime() - recordingStartTime.getTime();
             const endOffset = new Date(endTime).getTime() - recordingStartTime.getTime();
             transcripts.push({
-                startTime: startTime,
-                endTime: endTime,
+                uuid: generateUUID(),
                 startOffset: startOffset,
                 endOffset: endOffset,
-                transcript: transcript
+                transcript: transcript,
+                phrases: phrases
             });
+
             console.log(JSON.stringify(transcripts, null, 2));
             document.getElementById('jsonDisplay').textContent = JSON.stringify(transcripts, null, 2);
+
+            // 次に文節を保持するために初期化
+            phrases = [];
+            isFirstPhraseAppeared = false;
         }
     };
 

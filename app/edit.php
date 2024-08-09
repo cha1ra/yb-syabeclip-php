@@ -1,3 +1,23 @@
+<?php
+require_once 'db.php';
+// パラメータを取得
+$id = $_GET['id'];
+// パラメータがない場合は404エラー
+if (!$id) {
+    http_response_code(404);
+    echo "404 Not Found";
+    exit;
+}
+// SQLクエリを準備
+$sql = "SELECT * FROM videos WHERE id = :id";
+$stmt = $pdo->prepare($sql);
+$stmt->bindParam(':id', $id);
+$stmt->execute();
+$video = $stmt->fetch(PDO::FETCH_ASSOC);
+?>
+
+
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -17,21 +37,36 @@
 
 </head>
 <body class="h-screen m-0 bg-slate-50">
-    <div id="app" class="h-screen grid grid-cols-1 md:grid-cols-2 m-0 mx-auto">
-        <div class="h-screen w-[56.25vh] m-0 mx-auto relative">
-            <div class="relative w-full h-auto">
-                <video id="videoElement" width='320' height='240' controls>
-                    <source src='./uploads/20240729T163749467Z.webm' type='video/webm'>
-                    Your browser does not support the video tag.
-                </video>
-                <canvas id="videoCanvas" width="1080" height="1920" class="absolute top-0 left-0" style="max-width: 360px;"></canvas>
-            </div>
-            <div class="absolute bottom-2 left-0 w-full flex justify-center gap-2 z-10">
-                <button @click="startRecording" class="bg-blue-500 text-white px-4 py-2 rounded-md">Start</button>
-                <button @click="stopRecording" class="bg-red-500 text-white px-4 py-2 rounded-md">Stop</button>
+    <div id="app" class="h-screen grid grid-cols-2 lg:grid-cols-3">
+        <div class="h-screen col-span-1 p-4">
+            <!-- <div class="h-screen w-[56.25vh] my-0 mx-auto relative"> -->
+            <div>
+
+                <div class="relative h-auto mx-auto mb-4" style="width: 360px; height: 640px;">
+                    <video id="videoElement" width='320' height='240' controls>
+                        <source src='./uploads/<?php echo $video['src']; ?>' type='video/webm'>
+                        Your browser does not support the video tag.
+                    </video>
+                    <canvas id="videoCanvas" width="1080" height="1920" class="absolute top-0 left-0" style="max-width: 360px;"></canvas>
+                </div>
+    
+                <div class="bottom-2 left-0 w-full flex justify-center gap-2 z-10">
+                    <!-- 再生 Start -->
+                    <button @click="startRecording" class="bg-slate-700 text-white px-4 py-2 rounded-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                            <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.841Z" />
+                        </svg>
+                    </button>
+                    <!-- 停止 Stop -->
+                    <button @click="stopRecording" class="bg-red-500 text-white px-4 py-2 rounded-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                            <path d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
-        <div class="relative w-full h-screen p-4">
+        <div class="relative w-full h-screen p-4 col-span-1 lg:col-span-2">
             <div class="mb-4">
                 <label for="titleInput" class="block text-sm font-medium text-gray-700">Title</label>
                 <input type="text" id="titleInput" v-model="title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
@@ -45,170 +80,78 @@
                 <div id="wave-timeline"></div>
                 <input type="range" id="zoomSlider" min="1" max="200" v-model="zoomLevel" class="w-full mt-4">
             </div>
-            <div id="clips" class="overflow-y-auto h-[calc(50vh)] border rounded-md p-4 mb-4">
-                <div v-for="clip in clips" :key="clip.uuid" :data-startOffset="clip.startOffset" :data-endOffset="clip.endOffset" class="bg-slate-50 border px-4 py-2 rounded-md mb-2 text-sm cursor-pointer" @click="selectClip(clip)">
-                    {{ clip.transcript }}
+            <div>
+                currentTranscriptIndex: {{ currentTranscriptIndex }} / {{ clips.length }}
+            </div>
+            <div id="clips" class="overflow-y-auto h-[calc(50vh)] border rounded-md p-4 mb-4 bg-white">
+                <div 
+                    v-for="(clip, index) in clips" 
+                    :key="clip.uuid" 
+                    :data-startOffset="clip.startOffset" 
+                    :data-endOffset="clip.endOffset" 
+                    class="bg-slate-50 border px-4 py-2 rounded-md mb-2 text-sm cursor-pointer" 
+                    :class="{'bg-yellow-200': currentTranscriptIndex === index}"
+                    @click="selectClip(clip)"
+                >
+                    <div class="mb-2">
+                        <div v-show="currentTranscriptIndex === index">
+                            <textarea :value="clip.transcript" @input="updateTranscript(index, $event.target.value)" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                        </div>
+                        <div v-show="currentTranscriptIndex !== index">
+                            {{ clip.transcript }}
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center" v-if="currentTranscriptIndex === index">
+                        <button @click="playClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
+                            クリップだけ再生
+                        </button>
+                        <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
+                        <button @click="duplicateClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
+                            複製
+                        </button>
+                        <button @click="splitClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
+                            分割
+                        </button>
+                        <button @click="deleteClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
+                            削除
+                        </button>
+                        <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
+                        <button @click="toggleZoom(clip)" 
+                                :class="{'bg-yellow-900': !!clip.zoom && clip.zoom > 1, 'bg-slate-700': !clip.zoom || clip.zoom <= 1}" 
+                                class="rounded text-white px-2 py-1 shadow-sm">
+                            ズーム
+                        </button>
+                    </div>
                 </div>
             </div>
             <details>
                 <summary class="bg-gray-500 text-white px-4 py-2 rounded-md cursor-pointer">JSON での表示</summary>
                 <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full text-xs">{{ JSON.stringify(clips, null, 2) }}</pre>
             </details>
+            <!-- オフセット -->
+            <div class="mb-4">
+                <label for="offsetInput" class="block text-sm font-medium text-gray-700">オフセット (ms)</label>
+                <input type="number" id="offsetInput" v-model.number="offset" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <button @click="applyOffset" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md">実施</button>
+            </div>
         </div>
     </div>
 
-<script>
-const { createApp, ref, onMounted } = Vue;
+<script type="module">
+import { draw } from './js/services/drawingService.js';
+const { createApp, ref, onMounted, watch } = Vue;
+
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
 
 createApp({
     setup() {
-        const clips = ref([
-            {
-                "startTime": "2024-07-29T16:37:52.211Z",
-                "endTime": "2024-07-29T16:37:56.931Z",
-                "startOffset": 2744,
-                "endOffset": 7464,
-                "transcript": "私がこのショート動画アプリを\n作った理由",
-                "zoom": 1.5,
-                "uuid": "uuid-1"
-            },
-            {
-                "startTime": "2024-07-29T16:37:57.867Z",
-                "endTime": "2024-07-29T16:37:59.576Z",
-                "startOffset": 8400,
-                "endOffset": 10109,
-                "transcript": "についてお話をします",
-                "uuid": "uuid-2"
-            },
-            {
-                "startTime": "2024-07-29T16:38:02.411Z",
-                "endTime": "2024-07-29T16:38:06.736Z",
-                "startOffset": 12944,
-                "endOffset": 17269,
-                "transcript": "このショート動画アプリを\n作った理由は",
-                "uuid": "uuid-3"
-            },
-            {
-                "startTime": "2024-07-29T16:38:08.499Z",
-                "endTime": "2024-07-29T16:38:10.821Z",
-                "startOffset": 19032,
-                "endOffset": 21354,
-                "transcript": "動画の作るっていうところの",
-                "uuid": "uuid-4"
-            },
-            {
-                "startTime": "2024-07-29T16:38:14.650Z",
-                "endTime": "2024-07-29T16:38:19.253Z",
-                "startOffset": 25183,
-                "endOffset": 29786,
-                "transcript": "元々の意義っていうのを\n皆さんと考えたい",
-                "uuid": "uuid-5"
-            },
-            {
-                "startTime": "2024-07-29T16:38:21.077Z",
-                "endTime": "2024-07-29T16:38:24.186Z",
-                "startOffset": 31610,
-                "endOffset": 34719,
-                "transcript": "そのためにこのような仕組み\nっていうのを作りました",
-                "uuid": "uuid-6"
-            },
-            {
-                "startTime": "2024-07-29T16:38:25.918Z",
-                "endTime": "2024-07-29T16:38:28.843Z",
-                "startOffset": 36451,
-                "endOffset": 39376,
-                "transcript": "ショート動画って元々は",
-                "uuid": "uuid-7"
-            },
-            {
-                "startTime": "2024-07-29T16:38:32.147Z",
-                "endTime": "2024-07-29T16:38:37.065Z",
-                "startOffset": 42680,
-                "endOffset": 47598,
-                "transcript": "自分が取りたいなと思った タイミングに取れる",
-                "uuid": "uuid-8"
-            },
-            {
-                "startTime": "2024-07-29T16:38:39.235Z",
-                "endTime": "2024-07-29T16:38:42.671Z",
-                "startOffset": 49768,
-                "endOffset": 53204,
-                "transcript": "それが元々 証拠とかはずだったはずなんですよ",
-                "uuid": "uuid-9"
-            },
-            {
-                "startTime": "2024-07-29T16:38:45.015Z",
-                "endTime": "2024-07-29T16:38:48.854Z",
-                "startOffset": 55548,
-                "endOffset": 59387,
-                "transcript": "だけど今の形だと",
-                "uuid": "uuid-10"
-            },
-            {
-                "startTime": "2024-07-29T16:38:49.898Z",
-                "endTime": "2024-07-29T16:38:52.748Z",
-                "startOffset": 60431,
-                "endOffset": 63281,
-                "transcript": "ショート動画用の台本を練る",
-                "uuid": "uuid-11"
-            },
-            {
-                "startTime": "2024-07-29T16:38:55.867Z",
-                "endTime": "2024-07-29T16:38:55.867Z",
-                "startOffset": 66400,
-                "endOffset": 66400,
-                "transcript": "ショート動画用の撮影をする",
-                "uuid": "uuid-12"
-            },
-            {
-                "startTime": "2024-07-29T16:38:57.315Z",
-                "endTime": "2024-07-29T16:38:58.361Z",
-                "startOffset": 67848,
-                "endOffset": 68894,
-                "transcript": "そして 編集",
-                "uuid": "uuid-13"
-            },
-            {
-                "startTime": "2024-07-29T16:38:59.964Z",
-                "endTime": "2024-07-29T16:39:07.101Z",
-                "startOffset": 70497,
-                "endOffset": 77634,
-                "transcript": "このような形で結局動画にするまでにいっぱい時間をかけないといろんな人に見てもらえない",
-                "uuid": "uuid-14"
-            },
-            {
-                "startTime": "2024-07-29T16:39:08.043Z",
-                "endTime": "2024-07-29T16:39:10.451Z",
-                "startOffset": 78576,
-                "endOffset": 80984,
-                "transcript": "こんな状況があります",
-                "uuid": "uuid-15"
-            },
-            {
-                "startTime": "2024-07-29T16:39:11.256Z",
-                "endTime": "2024-07-29T16:39:13.888Z",
-                "startOffset": 81789,
-                "endOffset": 84421,
-                "transcript": "この状況を私は",
-                "uuid": "uuid-16"
-            },
-            {
-                "startTime": "2024-07-29T16:39:15.198Z",
-                "endTime": "2024-07-29T16:39:15.198Z",
-                "startOffset": 85731,
-                "endOffset": 85731,
-                "transcript": "変えたい",
-                "uuid": "uuid-17"
-            },
-            {
-                "startTime": "2024-07-29T16:39:18.317Z",
-                "endTime": "2024-07-29T16:39:22.242Z",
-                "startOffset": 88850,
-                "endOffset": 92775,
-                "transcript": "だからこそこんなアプリケーションを作っています",
-                "uuid": "uuid-18"
-            }
-        ]);
+        const clips = ref(JSON.parse(<?php echo json_encode($video['clips']); ?>));
         const title = ref("今回のテーマ");
         const subTitle = ref("アプリ制作の想い");
         const currentTranscriptIndex = ref(0);
@@ -216,14 +159,37 @@ createApp({
         const mediaRecorder = ref(null);
         const recordedChunks = ref([]);
         const zoomLevel = ref(20);
+        const offset = ref(-400);
         let regions, waveform, bgm;
+
+        // clipsの変更を監視して更新
+        watch(clips, async (newClips) => {
+            try {
+                const formData = new FormData();
+                formData.append('id', <?php echo $video['id']; ?>);
+                formData.append('src', <?php echo json_encode($video['src']); ?>);
+                formData.append('transcripts', JSON.stringify(newClips));
+
+                const response = await fetch('update.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || '更新に失敗しました');
+                }
+                console.log('更新成功:', result);
+            } catch (error) {
+                console.error('更新エラー:', error);
+            }
+        }, { deep: true });
 
         const startRecording = () => {
             if (!isPlaying.value) {
                 isPlaying.value = true;
-                currentTranscriptIndex.value = 0;
+                // currentTranscriptIndex.value = 0;
                 playSegment(currentTranscriptIndex.value);
-                draw();
+                draw(clips, currentTranscriptIndex, title, subTitle);
                 bgm.play(); // BGMを再生
             }
         };
@@ -237,115 +203,22 @@ createApp({
         };
 
         const selectClip = (clip) => {
+            currentTranscriptIndex.value = clips.value.findIndex(c => c.uuid === clip.uuid);
+
             const startOffset = clip.startOffset;
             const endOffset = clip.endOffset;
             regions.clearRegions();
-            regions.addRegion({
-                start: startOffset / 1000,
-                end: endOffset / 1000,
-                content: 'Now',
-                color: "rgba(255, 255, 255, 0.5)",
-                drag: false,
-                resize: true,
-            });
-            currentTranscriptIndex.value = clips.value.findIndex(c => c.uuid === clip.uuid);
-        };
-
-        const draw = () => {
-            const { transcript, zoom = 1 } = clips.value[currentTranscriptIndex.value];
-            const video = document.getElementById('videoElement');
-            const canvas = document.getElementById('videoCanvas');
-            const context = canvas.getContext('2d');
-
-            // 動画をズームして描画
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
-            const zoomedWidth = videoWidth / zoom;
-            const zoomedHeight = videoHeight / zoom;
-            const offsetX = (videoWidth - zoomedWidth) / 2;
-            const offsetY = (videoHeight - zoomedHeight) / 2;
-            context.drawImage(video, offsetX, offsetY, zoomedWidth, zoomedHeight, 0, 0, canvas.width, canvas.height);
-
-            const padding = 32;
-            const fontSize = 64;
-            const lines = transcript.split('\n');
-            const lineHeight = fontSize + padding;
-            const textHeight = lineHeight * lines.length;
-            context.font = `${fontSize}px 'M PLUS 1p'`;
-            context.fillStyle = "rgba(0, 0, 0, 0.5)"; // 黒透過背景
-            const yPosition = canvas.height * (3 / 4); // 下から1/4の位置
-            context.fillRect(0, yPosition - textHeight / 2, canvas.width, textHeight); // 背景の幅はcanvas幅いっぱいに
-            context.fillStyle = "white";
-            context.textAlign = "center"; // 文字を中央寄せ
-            context.textBaseline = "middle"; // 文字の垂直方向を中央寄せ
-            // 改行文字で分割して描画
-            lines.forEach((line, index) => {
-                context.fillText(line, canvas.width / 2, yPosition + index * lineHeight - (lines.length - 1) * lineHeight / 2);
+            clips.value.forEach((clip, index) => {
+                regions.addRegion({
+                    start: clip.startOffset / 1000,
+                    end: clip.endOffset / 1000,
+                    color: currentTranscriptIndex.value === index ? "rgba(254,206,56, 0.3)" : "rgba(0,0,0, 0.3)",
+                    drag: currentTranscriptIndex.value === index,
+                    resize: currentTranscriptIndex.value === index,
+                });
             });
 
-            // 左上にタイトルテロップを描画
-            const titleText = title.value || "今回のテーマ";
-            const titleFontSize = 36;
-            const tiltlePadding = 8;
-
-            const subTitleText = subTitle.value || "アプリ制作の想い";
-            const subTitleFontSize = 48;
             
-            context.imageSmoothingEnabled = true; // フォントをスムーズにする
-            context.font = `${subTitleFontSize}px 'M PLUS 1p'`;
-            const subTitleTextWidth = context.measureText(subTitleText).width;
-            const rectWidth = subTitleTextWidth + padding * 2;
-            const rectHeight = subTitleFontSize + padding * 2;
-            const rectX = padding;
-            const rectY = 200;
-
-            // 影をつける
-            context.shadowColor = "rgba(0, 0, 0, 0.5)";
-            context.shadowBlur = 10;
-            context.shadowOffsetX = 5;
-            context.shadowOffsetY = 5;
-
-            context.textAlign = "left"; // 文字を左寄せ
-            context.textBaseline = "top"; // 文字の垂直方向を中央寄せ
-
-            context.font = `${titleFontSize}px 'M PLUS 1p'`;
-            const titleTextWidth = context.measureText(titleText).width;
-            const titleRectWidth = titleTextWidth + tiltlePadding * 2;
-            const titleRectHeight = titleFontSize + tiltlePadding * 2;
-
-            // タイトルを描画
-            context.font = `${titleFontSize}px 'M PLUS 1p'`;
-            context.fillStyle = "black"; // 黒背景
-            context.fillRect(rectX + padding - tiltlePadding, rectY - titleFontSize - tiltlePadding * 3, titleRectWidth, titleRectHeight);
-            context.fillStyle = "white";
-            context.fillText(titleText, rectX + padding, rectY - titleFontSize - tiltlePadding * 2); 
-
-            // 角丸の矩形を描画する関数
-            function drawRoundedRect(ctx, x, y, width, height, radius) {
-                ctx.beginPath();
-                ctx.moveTo(x + radius, y);
-                ctx.lineTo(x + width - radius, y);
-                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-                ctx.lineTo(x + width, y + height - radius);
-                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-                ctx.lineTo(x + radius, y + height);
-                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-                ctx.lineTo(x, y + radius);
-                ctx.quadraticCurveTo(x, y, x + radius, y);
-                ctx.closePath();
-            }
-
-            // 角丸の矩形を描画
-            const radius = 20; // 角丸の半径
-            context.fillStyle = "rgba(255, 255, 255, 1)"; // 白背景
-            drawRoundedRect(context, rectX, rectY, rectWidth, rectHeight, radius);
-            context.fill();
-            context.font = `${subTitleFontSize}px 'M PLUS 1p'`;
-            context.shadowColor = "transparent"; // 影をリセット
-            context.fillStyle = "black";
-            context.fillText(subTitleText, rectX + padding, rectY + padding); 
-
-            requestAnimationFrame(draw);
         };
 
         const playSegment = (index) => {
@@ -380,6 +253,86 @@ createApp({
                 const currentTime = video.currentTime;
                 waveform.seekTo(currentTime / duration);
                 requestAnimationFrame(syncWaveform);
+            }
+        };
+
+        const duplicateClip = (clip) => {
+            const newClip = { ...clip, uuid: generateUUID() };
+            const index = clips.value.findIndex(c => c.uuid === clip.uuid);
+            clips.value.splice(index + 1, 0, newClip);
+        };
+
+        const splitClip = (clip) => {
+            const index = clips.value.findIndex(c => c.uuid === clip.uuid);
+            const midOffset = (clip.startOffset + clip.endOffset) / 2;
+            const midTranscriptIndex = Math.floor(clip.transcript.length / 2);
+
+            const newClip = {
+                ...clip,
+                uuid: generateUUID(),
+                startOffset: midOffset,
+                endOffset: clip.endOffset,
+                transcript: clip.transcript.slice(midTranscriptIndex).trim()
+            };
+
+            clip.endOffset = midOffset;
+            clip.transcript = clip.transcript.slice(0, midTranscriptIndex).trim();
+
+            clips.value.splice(index + 1, 0, newClip);
+        };
+
+        const deleteClip = (clip) => {
+            const index = clips.value.findIndex(c => c.uuid === clip.uuid);
+            if (index !== -1) {
+                clips.value.splice(index, 1);
+            }
+        };
+
+        const generateUUID = () => {
+            const now = Date.now().toString(16);
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            }) + '-' + now;
+        };
+
+        const playClip = (clip) => {
+            const video = document.getElementById('videoElement');
+            video.currentTime = clip.startOffset / 1000;
+            video.play();
+
+            const checkTime = () => {
+                if (video.currentTime >= clip.endOffset / 1000) {
+                    video.pause();
+                } else {
+                    requestAnimationFrame(checkTime);
+                }
+            };
+
+            checkTime();
+        };
+
+        const applyOffset = () => {
+            clips.value.forEach(clip => {
+                clip.startOffset += offset.value;
+                clip.endOffset += offset.value;
+            });
+            selectClip(clips.value[currentTranscriptIndex.value]);
+        };
+
+        const debouncedUpdate = debounce((index, value) => {
+            clips.value[index].transcript = value;
+        }, 300);
+
+        const updateTranscript = (index, value) => {
+            debouncedUpdate(index, value);
+        };
+
+        const toggleZoom = (clip) => {
+            if (!clip.zoom || clip.zoom === 1.0) {
+                clip.zoom = 1.5;
+            } else {
+                clip.zoom = 1.0;
             }
         };
 
@@ -445,7 +398,7 @@ createApp({
                 isPlaying.value = true; // 録画中は再生状態にする
                 currentTranscriptIndex.value = 0;
                 playSegment(currentTranscriptIndex.value);
-                draw();
+                draw(clips, currentTranscriptIndex, title, subTitle);
                 bgm.play(); // BGMを再生
             });
 
@@ -457,7 +410,7 @@ createApp({
             });
 
             video.addEventListener('loadeddata', () => {
-                draw();
+                draw(clips, currentTranscriptIndex, title, subTitle);
             });
 
             // 波形表示のためのWaveSurfer.jsの設定
@@ -468,7 +421,7 @@ createApp({
                 waveColor: 'violet',
                 progressColor: 'purple',
                 backend: 'MediaElement',
-                url: './uploads/20240729T163749467Z.webm',
+                url: './uploads/<?php echo $video['src']; ?>',
                 plugins: [
                     WaveSurfer.Timeline.create({
                         container: '#wave-timeline'
@@ -490,6 +443,10 @@ createApp({
                 const zoomLevel = Number(event.target.value);
                 waveform.zoom(zoomLevel);
             });
+
+            waveform.on('ready', () => {
+                selectClip(clips.value[currentTranscriptIndex.value]);
+            });
         });
 
         return {
@@ -501,9 +458,17 @@ createApp({
             mediaRecorder,
             recordedChunks,
             zoomLevel,
+            offset,
             startRecording,
             stopRecording,
-            selectClip
+            selectClip,
+            duplicateClip,
+            splitClip,
+            deleteClip,
+            playClip,
+            applyOffset,
+            updateTranscript,
+            toggleZoom
         };
     }
 }).mount('#app');
