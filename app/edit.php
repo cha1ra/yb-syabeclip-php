@@ -63,6 +63,12 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                             <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.841Z" />
                         </svg>
                     </button>
+                    <!-- 一時停止 Pause -->
+                    <button @click="pausePlayback" class="bg-slate-700 text-white px-4 py-2 rounded-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
+                            <path d="M5.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75A.75.75 0 0 0 7.25 3h-1.5ZM12.75 3a.75.75 0 0 0-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-.75-.75h-1.5Z" />
+                        </svg>
+                    </button>
                     <!-- 停止 Stop -->
                     <button @click="stopPlayback" class="bg-red-500 text-white px-4 py-2 rounded-md">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
@@ -208,7 +214,13 @@ createApp({
             }
         }, { deep: true });
 
+        // currentTranscriptIndexの変更を監視
+        watch(currentTranscriptIndex, () => {
+            drawRegions();
+        });
+
         const startPlayback = () => {
+            console.log('[info] startPlayback');
             if (!isPlaying.value) {
                 isPlaying.value = true;
                 playSegment(currentTranscriptIndex.value);
@@ -219,10 +231,24 @@ createApp({
             }
         };
 
-        const stopPlayback = () => {
+        const pausePlayback = () => {
+            console.log('[info] pausePlayback');
             isPlaying.value = false;
             const video = document.getElementById('videoElement');
             video.pause();
+            if (bgm) {
+                bgm.pause();
+                bgm.currentTime = 0;
+            }
+        };
+
+        const stopPlayback = () => {
+            console.log('[info] stopPlayback');
+            isPlaying.value = false;
+            const video = document.getElementById('videoElement');
+            video.pause();
+            video.currentTime = 0;
+            currentTranscriptIndex.value = 0;
             if (bgm) {
                 bgm.pause(); // BGMを停止
                 bgm.currentTime = 0; // BGMを最初に戻す
@@ -244,13 +270,10 @@ createApp({
 
         const selectClip = (clip) => {
             currentTranscriptIndex.value = clips.value.findIndex(c => c.uuid === clip.uuid);
-            console.log('currentTranscriptIndex.value', currentTranscriptIndex.value);
 
             const startOffset = clip.startOffset;
             const endOffset = clip.endOffset;
 
-            // 波形の選択部分を更新する処理
-            drawRegions();
         };
 
         const MIN_CLIP_DURATION = 10; // 最小クリップ間隔（ミリ秒）
@@ -283,6 +306,11 @@ createApp({
             }
 
             const checkTime = () => {
+                console.log('checkTime', currentTranscriptIndex.value, video.currentTime, endOffset / 1000);
+                // 再生フラグがfalseになったら、ループを抜ける
+                if (!isPlaying.value) {
+                    return;
+                }
                 if (video.currentTime >= endOffset / 1000) {
                     currentTranscriptIndex.value++;
                     playSegment(currentTranscriptIndex.value);
@@ -603,9 +631,11 @@ createApp({
 
             waveform.on('ready', () => {
                 selectClip(clips.value[currentTranscriptIndex.value]);
+                drawRegions();
             });
 
             window.addEventListener('keydown', handleKeyDown);
+
         });
 
         onUnmounted(() => {
@@ -638,6 +668,7 @@ createApp({
             offset,
             selectedBgm,
             startPlayback,
+            pausePlayback,
             stopPlayback,
             selectClip,
             duplicateClip,
