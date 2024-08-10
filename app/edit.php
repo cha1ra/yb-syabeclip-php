@@ -89,7 +89,7 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
             <div>
                 currentTranscriptIndex: {{ currentTranscriptIndex }} / {{ clips.length }}
             </div>
-            <div id="clips" class="overflow-y-auto h-[calc(50vh)] border rounded-md p-4 mb-4 bg-white">
+            <div id="clips" class="overflow-y-auto h-[calc(50vh)] border rounded-md p-4 mb-4 bg-white" tabindex="0" @keydown="handleKeyDown">
                 <div 
                     v-for="(clip, index) in clips" 
                     :key="clip.uuid" 
@@ -159,7 +159,7 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
 
 <script type="module">
 import { draw } from './js/services/drawingService.js';
-const { createApp, ref, onMounted, watch } = Vue;
+const { createApp, ref, onMounted, watch, onUnmounted } = Vue;
 
 function debounce(func, wait) {
     let timeout;
@@ -208,13 +208,10 @@ createApp({
         const startRecording = () => {
             if (!isPlaying.value) {
                 isPlaying.value = true;
-                // currentTranscriptIndex.value = 0;
                 playSegment(currentTranscriptIndex.value);
                 draw(clips, currentTranscriptIndex, title, subTitle);
                 if (selectedBgm.value) {
-                    bgm = new Audio(`./assets/bgm/${selectedBgm.value}`);
-                    bgm.volume = 0.1;
-                    bgm.play(); // BGMを再生
+                    bgm.play(); // BGMを再生（選択されている場合のみ）
                 }
             }
         };
@@ -418,6 +415,34 @@ createApp({
             clips.value.splice(index + 1, 0, newClip);
         };
 
+        const moveClip = (direction) => {
+            const newIndex = currentTranscriptIndex.value + direction;
+            if (newIndex >= 0 && newIndex < clips.value.length) {
+                // 最初のクリップで上矢印、または最後のクリップで下矢印の場合は何もしない
+                if ((currentTranscriptIndex.value === 0 && direction === -1) || 
+                    (currentTranscriptIndex.value === clips.value.length - 1 && direction === 1)) {
+                    return;
+                }
+                currentTranscriptIndex.value = newIndex;
+                selectClip(clips.value[newIndex]);
+            }
+        };
+
+        const handleKeyDown = (event) => {
+            switch (event.key) {
+                case 'ArrowUp':
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    moveClip(-1);
+                    break;
+                case 'ArrowDown':
+                case 'ArrowRight':
+                    event.preventDefault();
+                    moveClip(1);
+                    break;
+            }
+        };
+
         onMounted(() => {
             const video = document.getElementById('videoElement');
             const canvas = document.getElementById('videoCanvas');
@@ -532,6 +557,26 @@ createApp({
             waveform.on('ready', () => {
                 selectClip(clips.value[currentTranscriptIndex.value]);
             });
+
+            window.addEventListener('keydown', handleKeyDown);
+        });
+
+        onUnmounted(() => {
+            window.removeEventListener('keydown', handleKeyDown);
+        });
+
+        watch(selectedBgm, (newValue) => {
+            if (bgm) {
+                bgm.pause();
+                bgm.currentTime = 0;
+            }
+            if (newValue) {
+                bgm = new Audio(`./assets/bgm/${newValue}`);
+                bgm.volume = 0.1;
+                bgm.loop = true; // BGMをループ再生
+            } else {
+                bgm = null;
+            }
         });
 
         return {
@@ -556,7 +601,9 @@ createApp({
             updateTranscript,
             toggleZoom,
             selectPhrase,
-            splitClipAtPhrase
+            splitClipAtPhrase,
+            moveClip,
+            handleKeyDown
         };
     }
 }).mount('#app');
