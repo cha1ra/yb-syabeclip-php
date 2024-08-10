@@ -51,6 +51,12 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                 </div>
     
                 <div class="bottom-2 left-0 w-full flex justify-center gap-2 z-10">
+                    <!-- BGMセレクトボックス -->
+                    <select v-model="selectedBgm" class="bg-white border border-gray-300 rounded-md px-2 py-1">
+                        <option value="">BGMなし</option>
+                        <option value="Juno.mp3">Juno</option>
+                        <!-- 他のBGMオプションをここに追加 -->
+                    </select>
                     <!-- 再生 Start -->
                     <button @click="startRecording" class="bg-slate-700 text-white px-4 py-2 rounded-md">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
@@ -174,6 +180,7 @@ createApp({
         const recordedChunks = ref([]);
         const zoomLevel = ref(20);
         const offset = ref(-400);
+        const selectedBgm = ref('');
         let regions, waveform, bgm;
 
         // clipsの変更を監視して更新
@@ -204,7 +211,11 @@ createApp({
                 // currentTranscriptIndex.value = 0;
                 playSegment(currentTranscriptIndex.value);
                 draw(clips, currentTranscriptIndex, title, subTitle);
-                bgm.play(); // BGMを再生
+                if (selectedBgm.value) {
+                    bgm = new Audio(`./assets/bgm/${selectedBgm.value}`);
+                    bgm.volume = 0.1;
+                    bgm.play(); // BGMを再生
+                }
             }
         };
 
@@ -212,8 +223,10 @@ createApp({
             isPlaying.value = false;
             const video = document.getElementById('videoElement');
             video.pause();
-            bgm.pause(); // BGMを停止
-            bgm.currentTime = 0; // BGMを最初に戻す
+            if (bgm) {
+                bgm.pause(); // BGMを停止
+                bgm.currentTime = 0; // BGMを最初に戻す
+            }
         };
 
         const selectClip = (clip) => {
@@ -419,9 +432,6 @@ createApp({
             progress.value = 0;
             document.body.appendChild(progress);
 
-            bgm = new Audio('./assets/bgm/Juno.mp3');
-            bgm.volume = 0.1;
-
             video.addEventListener('play', syncWaveform);
             video.addEventListener('pause', () => isPlaying.value = false);
             video.addEventListener('ended', () => isPlaying.value = false);
@@ -435,9 +445,13 @@ createApp({
                 const destination = audioContext.createMediaStreamDestination();
                 
                 // BGMのソースノードを作成
-                const bgmSourceNode = audioContext.createMediaElementSource(bgm);
-                bgmSourceNode.connect(destination);
-                bgmSourceNode.connect(audioContext.destination); // BGMを再生するために接続
+                if (selectedBgm.value) {
+                    bgm = new Audio(`./assets/bgm/${selectedBgm.value}`);
+                    bgm.volume = 0.1;
+                    const bgmSourceNode = audioContext.createMediaElementSource(bgm);
+                    bgmSourceNode.connect(destination);
+                    bgmSourceNode.connect(audioContext.destination); // BGMを再生するために接続
+                }
 
                 // 動画のオーディオトラックをオーディオコンテキストに接続
                 const videoSourceNode = audioContext.createMediaStreamSource(new MediaStream([audioTrack]));
@@ -468,7 +482,9 @@ createApp({
                 currentTranscriptIndex.value = 0;
                 playSegment(currentTranscriptIndex.value);
                 draw(clips, currentTranscriptIndex, title, subTitle);
-                bgm.play(); // BGMを再生
+                if (selectedBgm.value) {
+                    bgm.play(); // BGMを再生
+                }
             });
 
             video.addEventListener('timeupdate', () => {
@@ -528,6 +544,7 @@ createApp({
             recordedChunks,
             zoomLevel,
             offset,
+            selectedBgm,
             startRecording,
             stopRecording,
             selectClip,
