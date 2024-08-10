@@ -58,13 +58,13 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                         <!-- 他のBGMオプションをここに追加 -->
                     </select>
                     <!-- 再生 Start -->
-                    <button @click="startRecording" class="bg-slate-700 text-white px-4 py-2 rounded-md">
+                    <button @click="startPlayback" class="bg-slate-700 text-white px-4 py-2 rounded-md">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
                             <path d="M6.3 2.84A1.5 1.5 0 0 0 4 4.11v11.78a1.5 1.5 0 0 0 2.3 1.27l9.344-5.891a1.5 1.5 0 0 0 0-2.538L6.3 2.841Z" />
                         </svg>
                     </button>
                     <!-- 停止 Stop -->
-                    <button @click="stopRecording" class="bg-red-500 text-white px-4 py-2 rounded-md">
+                    <button @click="stopPlayback" class="bg-red-500 text-white px-4 py-2 rounded-md">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-5">
                             <path d="M5.25 3A2.25 2.25 0 0 0 3 5.25v9.5A2.25 2.25 0 0 0 5.25 17h9.5A2.25 2.25 0 0 0 17 14.75v-9.5A2.25 2.25 0 0 0 14.75 3h-9.5Z" />
                         </svg>
@@ -85,6 +85,9 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                 <div id="waveform"></div>
                 <div id="wave-timeline"></div>
                 <input type="range" id="zoomSlider" min="1" max="200" v-model="zoomLevel" class="w-full mt-4">
+            </div>
+            <div>
+                現在のビデオの時間: {{ video?.currentTime }}
             </div>
             <div>
                 currentTranscriptIndex: {{ currentTranscriptIndex }} / {{ clips.length }}
@@ -205,7 +208,7 @@ createApp({
             }
         }, { deep: true });
 
-        const startRecording = () => {
+        const startPlayback = () => {
             if (!isPlaying.value) {
                 isPlaying.value = true;
                 playSegment(currentTranscriptIndex.value);
@@ -216,7 +219,7 @@ createApp({
             }
         };
 
-        const stopRecording = () => {
+        const stopPlayback = () => {
             isPlaying.value = false;
             const video = document.getElementById('videoElement');
             video.pause();
@@ -226,11 +229,7 @@ createApp({
             }
         };
 
-        const selectClip = (clip) => {
-            currentTranscriptIndex.value = clips.value.findIndex(c => c.uuid === clip.uuid);
-
-            const startOffset = clip.startOffset;
-            const endOffset = clip.endOffset;
+        const drawRegions = () => {
             regions.clearRegions();
             clips.value.forEach((clip, index) => {
                 regions.addRegion({
@@ -241,8 +240,17 @@ createApp({
                     resize: currentTranscriptIndex.value === index,
                 });
             });
+        };
 
-            
+        const selectClip = (clip) => {
+            currentTranscriptIndex.value = clips.value.findIndex(c => c.uuid === clip.uuid);
+            console.log('currentTranscriptIndex.value', currentTranscriptIndex.value);
+
+            const startOffset = clip.startOffset;
+            const endOffset = clip.endOffset;
+
+            // 波形の選択部分を更新する処理
+            drawRegions();
         };
 
         const MIN_CLIP_DURATION = 10; // 最小クリップ間隔（ミリ秒）
@@ -429,6 +437,11 @@ createApp({
         };
 
         const handleKeyDown = (event) => {
+            // textareaにフォーカスがある場合は、矢印キーの挙動をスキップ
+            if (event.target.tagName.toLowerCase() === 'textarea') {
+                return;
+            }
+
             switch (event.key) {
                 case 'ArrowUp':
                 case 'ArrowLeft':
@@ -439,6 +452,14 @@ createApp({
                 case 'ArrowRight':
                     event.preventDefault();
                     moveClip(1);
+                    break;
+                case ' ':
+                    event.preventDefault();
+                    if (isPlaying.value) {
+                        stopPlayback();
+                    } else {
+                        startPlayback();
+                    }
                     break;
             }
         };
@@ -544,8 +565,34 @@ createApp({
                 const { start, end } = region;
                 const startOffset = start * 1000;
                 const endOffset = end * 1000;
-                clips.value[currentTranscriptIndex.value].startOffset = startOffset;
-                clips.value[currentTranscriptIndex.value].endOffset = endOffset;
+
+                const currentClip = clips.value[currentTranscriptIndex.value];
+
+                // currentTranscriptIndex が 0 より大きい場合、一つ前のクリップの終わりとの差分をチェックする。
+                console.log('currentTranscriptIndex.value', currentTranscriptIndex.value);
+                if (currentTranscriptIndex.value > 0) {
+                    const prevClip = clips.value[currentTranscriptIndex.value - 1];
+                    const gap = currentClip.startOffset - prevClip.endOffset;
+                    if (gap <= MIN_CLIP_DURATION) {
+                        prevClip.endOffset = startOffset - 1;
+                    }
+                    console.log('一つ前のクリップの終わりとの差分', gap);
+                }
+                // currentTranscriptIndex が clips.value.length より小さい場合、一つ後のクリップの始めとの差分をチェックする。
+                if (currentTranscriptIndex.value < clips.value.length - 1) {
+                    const nextClip = clips.value[currentTranscriptIndex.value + 1];
+                    const gap = nextClip.startOffset - currentClip.endOffset;
+                    if (gap <= MIN_CLIP_DURATION) {
+                        nextClip.startOffset = endOffset + 1;
+                    }
+                    console.log('一つ後のクリップの始めとの差分', gap);
+                }
+
+                currentClip.startOffset = startOffset;
+                currentClip.endOffset = endOffset;
+
+                // リージョンの再描画
+                drawRegions();
             });
 
             const zoomSlider = document.getElementById('zoomSlider');
@@ -590,8 +637,8 @@ createApp({
             zoomLevel,
             offset,
             selectedBgm,
-            startRecording,
-            stopRecording,
+            startPlayback,
+            stopPlayback,
             selectClip,
             duplicateClip,
             splitClip,
