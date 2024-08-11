@@ -1,4 +1,9 @@
 <?php
+require_once 'auth.php';
+requireLogin();
+?>
+
+<?php
 require_once 'db.php';
 // パラメータを取得
 $id = $_GET['id'];
