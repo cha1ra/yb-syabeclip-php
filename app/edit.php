@@ -27,7 +27,7 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p&family=Noto+Serif+JP&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/wavesurfer.js@7"></script>
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/timeline.min.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/zoom.min.js"></script>
@@ -223,8 +223,13 @@ createApp({
         const downloadBtnRef = ref(null);
         const recordingProgressRef = ref(null);
 
+        const editHistories = ref({
+            undo: [], // 元に戻す
+            redo: [] // やり直し
+        });
+
         // clipsの変更を監視して更新
-        watch(clips, async (newClips) => {
+        watch(clips, async (newClips, oldClips) => {
             try {
                 const formData = new FormData();
                 formData.append('id', <?php echo $video['id']; ?>);
@@ -240,6 +245,12 @@ createApp({
                     throw new Error(result.error || '更新に失敗しました');
                 }
                 console.log('更新成功:', result);
+
+                // 編集履歴に追加（ただし、undo/redoによる変更の場合は追加しない）
+                if (!editHistories.value.undo.length || JSON.stringify(editHistories.value.undo[editHistories.value.undo.length - 1]) !== JSON.stringify(oldClips)) {
+                    editHistories.value.undo.push(JSON.parse(JSON.stringify(oldClips)));
+                    editHistories.value.redo = [];
+                }
             } catch (error) {
                 console.error('更新エラー:', error);
             }
@@ -508,6 +519,17 @@ createApp({
                 return;
             }
 
+            // 元に戻す (Undo)
+            if ((event.metaKey || event.ctrlKey) && event.key === 'z' && !event.shiftKey) {
+                event.preventDefault();
+                undo();
+            }
+            // やり直し (Redo)
+            else if ((event.metaKey || event.ctrlKey) && event.key === 'z' && event.shiftKey) {
+                event.preventDefault();
+                redo();
+            }
+
             switch (event.key) {
                 case 'ArrowUp':
                 case 'ArrowLeft':
@@ -527,6 +549,22 @@ createApp({
                         startPlayback();
                     }
                     break;
+            }
+        }
+
+        const undo = () => {
+            if (editHistories.value.undo.length > 0) {
+                const previousState = editHistories.value.undo.pop();
+                editHistories.value.redo.push(JSON.parse(JSON.stringify(clips.value)));
+                clips.value = JSON.parse(JSON.stringify(previousState));
+            }
+        };
+
+        const redo = () => {
+            if (editHistories.value.redo.length > 0) {
+                const nextState = editHistories.value.redo.pop();
+                editHistories.value.undo.push(JSON.parse(JSON.stringify(clips.value)));
+                clips.value = JSON.parse(JSON.stringify(nextState));
             }
         };
 
@@ -664,12 +702,6 @@ createApp({
                 drawRegions();
             });
 
-            window.addEventListener('keydown', handleKeyDown);
-
-        });
-
-        onUnmounted(() => {
-            window.removeEventListener('keydown', handleKeyDown);
         });
 
         watch(selectedBgm, (newValue) => {
@@ -714,6 +746,8 @@ createApp({
             splitClipAtPhrase,
             moveClip,
             handleKeyDown,
+            undo,
+            redo,
             changePlaybackSpeed,
             videoRef,
             downloadBtnRef,
