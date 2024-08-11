@@ -43,7 +43,7 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
             <div>
 
                 <div class="relative h-auto mx-auto mb-4" style="width: 360px; height: 640px;">
-                    <video id="videoElement" width='320' height='240' controls>
+                    <video id="videoElement" ref="videoRef" width='320' height='240' controls>
                         <source src='./uploads/<?php echo $video['src']; ?>' type='video/webm'>
                         Your browser does not support the video tag.
                     </video>
@@ -56,6 +56,15 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                         <option value="">BGMなし</option>
                         <option value="Juno.mp3">Juno</option>
                         <!-- 他のBGMオプションをここに追加 -->
+                    </select>
+                    <!-- 再生速度 -->
+                    <select v-model="playbackSpeed" @change="changePlaybackSpeed" class="bg-white border border-gray-300 rounded-md px-2 py-1">
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2x</option>
                     </select>
                     <!-- 再生 Start -->
                     <button @click="startPlayback" class="bg-slate-700 text-white px-4 py-2 rounded-md">
@@ -76,6 +85,12 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                         </svg>
                     </button>
                 </div>
+                <div class="mt-4 flex items-center space-x-4">
+                    <button ref="downloadBtnRef" class="bg-green-500 text-white px-4 py-2 rounded-md">
+                        DL
+                    </button>
+                    <progress ref="recordingProgressRef" max="100" value="0" class="w-full"></progress>
+                </div>
             </div>
         </div>
         <div class="relative w-full h-screen p-4 col-span-1 lg:col-span-2">
@@ -93,7 +108,7 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                 <input type="range" id="zoomSlider" min="1" max="200" v-model="zoomLevel" class="w-full mt-4">
             </div>
             <div>
-                現在のビデオの時間: {{ video?.currentTime }}
+                現在のビデオの時間: {{ videoRef?.currentTime }}
             </div>
             <div>
                 currentTranscriptIndex: {{ currentTranscriptIndex }} / {{ clips.length }}
@@ -150,6 +165,14 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
                                 class="rounded text-white px-2 py-1 shadow-sm">
                             ズーム
                         </button>
+                        <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
+                        <button 
+                            class="rounded text-white px-2 py-1 shadow-sm" 
+                            @click="toggleTitle(clip)"
+                            :class="{'bg-yellow-900': !!clip.title, 'bg-slate-700': !clip.title}"
+                        >
+                            タイトル
+                        </button>
                     </div>
                 </div>
             </div>
@@ -165,6 +188,9 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
             </div>
         </div>
     </div>
+
+
+
 
 <script type="module">
 import { draw } from './js/services/drawingService.js';
@@ -190,7 +216,12 @@ createApp({
         const zoomLevel = ref(20);
         const offset = ref(-400);
         const selectedBgm = ref('');
+        const playbackSpeed = ref('1');
         let regions, waveform, bgm;
+
+        const videoRef = ref(null);
+        const downloadBtnRef = ref(null);
+        const recordingProgressRef = ref(null);
 
         // clipsの変更を監視して更新
         watch(clips, async (newClips) => {
@@ -198,7 +229,7 @@ createApp({
                 const formData = new FormData();
                 formData.append('id', <?php echo $video['id']; ?>);
                 formData.append('src', <?php echo json_encode($video['src']); ?>);
-                formData.append('transcripts', JSON.stringify(newClips));
+                formData.append('clips', JSON.stringify(newClips));
 
                 const response = await fetch('update.php', {
                     method: 'POST',
@@ -234,8 +265,7 @@ createApp({
         const pausePlayback = () => {
             console.log('[info] pausePlayback');
             isPlaying.value = false;
-            const video = document.getElementById('videoElement');
-            video.pause();
+            videoRef.value.pause();
             if (bgm) {
                 bgm.pause();
                 bgm.currentTime = 0;
@@ -245,9 +275,8 @@ createApp({
         const stopPlayback = () => {
             console.log('[info] stopPlayback');
             isPlaying.value = false;
-            const video = document.getElementById('videoElement');
-            video.pause();
-            video.currentTime = 0;
+            videoRef.value.pause();
+            videoRef.value.currentTime = 0;
             currentTranscriptIndex.value = 0;
             if (bgm) {
                 bgm.pause(); // BGMを停止
@@ -282,14 +311,18 @@ createApp({
             if (index >= clips.value.length) {
                 isPlaying.value = false;
                 mediaRecorder.value?.stop();
+                currentTranscriptIndex.value = 0;
+                if (bgm) {
+                    bgm.pause();
+                    bgm.currentTime = 0;
+                }
                 return;
             }
 
             const { startOffset, endOffset } = clips.value[index];
-            const video = document.getElementById('videoElement');
 
             const setVideoTime = (time) => {
-                video.currentTime = time / 1000;
+                videoRef.value.currentTime = time / 1000;
             };
 
             // indexが0ではない場合、前のクリップの終わりとの差分をチェックする。
@@ -306,12 +339,11 @@ createApp({
             }
 
             const checkTime = () => {
-                console.log('checkTime', currentTranscriptIndex.value, video.currentTime, endOffset / 1000);
                 // 再生フラグがfalseになったら、ループを抜ける
                 if (!isPlaying.value) {
                     return;
                 }
-                if (video.currentTime >= endOffset / 1000) {
+                if (videoRef.value.currentTime >= endOffset / 1000) {
                     currentTranscriptIndex.value++;
                     playSegment(currentTranscriptIndex.value);
                 } else {
@@ -320,15 +352,14 @@ createApp({
             };
 
             // シークが完了するのを待たずに再生を開始
-            video.play();
+            videoRef.value.play();
             checkTime();
         };
 
         const syncWaveform = () => {
             if (isPlaying.value) {
-                const video = document.getElementById('videoElement');
                 const duration = waveform.getDuration();
-                const currentTime = video.currentTime;
+                const currentTime = videoRef.value.currentTime;
                 waveform.seekTo(currentTime / duration);
                 requestAnimationFrame(syncWaveform);
             }
@@ -375,13 +406,12 @@ createApp({
         };
 
         const playClip = (clip) => {
-            const video = document.getElementById('videoElement');
-            video.currentTime = clip.startOffset / 1000;
-            video.play();
+            videoRef.value.currentTime = clip.startOffset / 1000;
+            videoRef.value.play();
 
             const checkTime = () => {
-                if (video.currentTime >= clip.endOffset / 1000) {
-                    video.pause();
+                if (videoRef.value.currentTime >= clip.endOffset / 1000) {
+                    videoRef.value.pause();
                 } else {
                     requestAnimationFrame(checkTime);
                 }
@@ -414,10 +444,18 @@ createApp({
             }
         };
 
+        const toggleTitle = (clip) => {
+            // clip.titleが存在しない場合はtrueにする
+            if (!clip.title) {
+                clip.title = true;
+            } else {
+                clip.title = !clip.title;
+            }
+        };
+
         const selectPhrase = (clip, phrase) => {
-            const video = document.getElementById('videoElement');
             const phraseStartTime = clip.startOffset + (phrase.transcriptStartOffset / clip.transcript.length) * (clip.endOffset - clip.startOffset);
-            video.currentTime = phraseStartTime / 1000;
+            videoRef.value.currentTime = phraseStartTime / 1000;
         };
 
         const splitClipAtPhrase = (clip, phraseIndex) => {
@@ -492,26 +530,18 @@ createApp({
             }
         };
 
+        const changePlaybackSpeed = () => {
+            videoRef.value.playbackRate = parseFloat(playbackSpeed.value);
+        };
+
         onMounted(() => {
-            const video = document.getElementById('videoElement');
             const canvas = document.getElementById('videoCanvas');
             const context = canvas.getContext('2d');
-            const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = 'Download';
-            downloadBtn.className = 'bg-green-500 text-white px-4 py-2 rounded-md';
-            document.body.appendChild(downloadBtn);
-
-            const progress = document.createElement('progress');
-            progress.max = 100;
-            progress.value = 0;
-            document.body.appendChild(progress);
-
-            video.addEventListener('play', syncWaveform);
-            video.addEventListener('pause', () => isPlaying.value = false);
-            video.addEventListener('ended', () => isPlaying.value = false);
+            const downloadBtn = downloadBtnRef.value;
+            const recordingProgress = recordingProgressRef.value;
 
             downloadBtn.addEventListener('click', () => {
-                const videoStream = video.captureStream(30); // フレームレートを30に設定
+                const videoStream = videoRef.value.captureStream(30); // フレームレートを30に設定
                 const canvasStream = canvas.captureStream(30); // フレームレートを30に設定
                 const audioTrack = videoStream.getAudioTracks()[0];
 
@@ -561,14 +591,14 @@ createApp({
                 }
             });
 
-            video.addEventListener('timeupdate', () => {
+            videoRef.value.addEventListener('timeupdate', () => {
                 // 録画の進行状況を更新
                 const totalDuration = clips.value.reduce((acc, transcript) => acc + (transcript.endOffset - transcript.startOffset), 0);
-                const currentDuration = clips.value.slice(0, currentTranscriptIndex.value).reduce((acc, transcript) => acc + (transcript.endOffset - transcript.startOffset), 0) + (video.currentTime * 1000 - clips.value[currentTranscriptIndex.value].startOffset);
-                progress.value = (currentDuration / totalDuration) * 100;
+                const currentDuration = clips.value.slice(0, currentTranscriptIndex.value).reduce((acc, transcript) => acc + (transcript.endOffset - transcript.startOffset), 0) + (videoRef.value.currentTime * 1000 - clips.value[currentTranscriptIndex.value].startOffset);
+                recordingProgress.value = (currentDuration / totalDuration) * 100;
             });
 
-            video.addEventListener('loadeddata', () => {
+            videoRef.value.addEventListener('loadeddata', () => {
                 draw(clips, currentTranscriptIndex, title, subTitle);
             });
 
@@ -667,6 +697,7 @@ createApp({
             zoomLevel,
             offset,
             selectedBgm,
+            playbackSpeed,
             startPlayback,
             pausePlayback,
             stopPlayback,
@@ -678,10 +709,15 @@ createApp({
             applyOffset,
             updateTranscript,
             toggleZoom,
+            toggleTitle,
             selectPhrase,
             splitClipAtPhrase,
             moveClip,
-            handleKeyDown
+            handleKeyDown,
+            changePlaybackSpeed,
+            videoRef,
+            downloadBtnRef,
+            recordingProgressRef
         };
     }
 }).mount('#app');
