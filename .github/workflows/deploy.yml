@@ -8,7 +8,7 @@ on:
 
 env:
   PROJECT_DIR: 'public_html/syabeclip.yubase.co.jp'
-  REPO_URL: 'https://github.com/YuBASE-Corp/sv-video-recording.git'
+  REPO_URL: 'https://github.com/YuBASE-Corp/yb-syabeclip-php.git'
   BRAHCH: 'main'
 
 jobs:
