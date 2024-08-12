@@ -26,4 +26,8 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./app/
-          server-dir: ./
+          server-dir: ${{ env.PROJECT_DIR }}/
+          exclude: |
+            **/.git*
+            **/.git*/**
+          dangerous-clean-slate: false
