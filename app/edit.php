@@ -42,7 +42,6 @@ $csrf_token = generate_csrf_token();
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/hover.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-
 </head>
 <body class="h-screen m-0 bg-slate-50">
     <div id="app" class="h-screen grid grid-cols-2 lg:grid-cols-3">
@@ -498,7 +497,7 @@ createApp({
         };
 
         const toggleTitle = (clip) => {
-            // clip.titleが存在しない場合はtrue��する
+            // clip.titleが存在しない場合はtrueにする
             if (!clip.title) {
                 clip.title = true;
             } else {
@@ -729,7 +728,7 @@ createApp({
                 currentClip.startOffset = startOffset;
                 currentClip.endOffset = endOffset;
 
-                // リージョンの��描画
+                // リージョンの再描画
                 drawRegions();
             });
 

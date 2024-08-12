@@ -1,9 +1,11 @@
 <?php
 function initSession() {
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.use_only_cookies', 1);
-    ini_set('session.cookie_secure', 1);
-    session_start();
+    if (session_status() == PHP_SESSION_NONE) {
+        ini_set('session.cookie_httponly', 1);
+        ini_set('session.use_only_cookies', 1);
+        ini_set('session.cookie_secure', 1);
+        session_start();
+    }
 
     if (!isset($_SESSION['last_activity'])) {
         $_SESSION['last_activity'] = time();
@@ -38,7 +40,9 @@ function requireLogin() {
 }
 
 function getCurrentUserId() {
-    initSession();
+    if (session_status() == PHP_SESSION_NONE) {
+        initSession();
+    }
     return $_SESSION['user_id'] ?? null;
 }
 
