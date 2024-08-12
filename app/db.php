@@ -8,10 +8,10 @@ if (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false) {
     $password = "password";
     $dbname = "mydatabase";
 } else {
-    $servername = "production_server";
-    $username = "production_user";
-    $password = "production_password";
-    $dbname = "production_database";
+    $servername = "mysql1007.conoha.ne.jp";
+    $username = "ti0bv_syabeclip";
+    $password = "kS8Uzxwuf_uQ";
+    $dbname = "ti0bv_syabeclip";
 }
 
 try {
