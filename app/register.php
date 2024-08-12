@@ -2,6 +2,20 @@
 require_once 'db.php';
 require_once 'auth.php';
 
+// 許可されたIPアドレスのリスト
+$allowed_ips = ['153.124.188.220','1.33.106.162']; // ここに許可するIPアドレスを追加
+
+// クライアントのIPアドレスを取得
+$client_ip = $_SERVER['REMOTE_ADDR'];
+
+// クライアントのIPアドレスが許可リストにない場合、アクセスを拒否
+if (!in_array($client_ip, $allowed_ips)) {
+    header('HTTP/1.0 403 Forbidden');
+    echo "IP:".$client_ip."<br>";
+    echo 'アクセスが拒否されました。';
+    exit;
+}
+
 initSession();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

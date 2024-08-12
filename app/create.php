@@ -21,9 +21,6 @@ requireLogin();
             <div class="absolute bottom-2 left-0 w-full flex justify-center gap-2 z-10">
                 <button id="startBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md">Start</button>
                 <button id="stopBtn" disabled class="bg-red-500 text-white px-4 py-2 rounded-md hidden">Stop</button>
-                <select id="cameraSelect" class="bg-white text-black px-4 py-2 rounded-md">
-                    <option value="">カメラを選択</option>
-                </select>
             </div>
         </div>
         <div class="relative w-full h-screen p-4">

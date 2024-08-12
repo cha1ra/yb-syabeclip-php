@@ -28,7 +28,7 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Recorder</title>
+    <title>動画編集 | しゃべクリップ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -101,11 +101,11 @@ $video = $stmt->fetch(PDO::FETCH_ASSOC);
         <div class="relative w-full h-screen p-4 col-span-1 lg:col-span-2">
             <div class="mb-4">
                 <label for="titleInput" class="block text-sm font-medium text-gray-700">Title</label>
-                <input type="text" id="titleInput" v-model="title" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <input type="text" id="titleInput" :value="title" @input="updateTitle($event.target.value)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
             <div class="mb-4">
                 <label for="subtitleInput" class="block text-sm font-medium text-gray-700">Subtitle</label>
-                <input type="text" id="subtitleInput" v-model="subTitle" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <input type="text" id="subtitleInput" :value="subTitle" @input="updateSubTitle($event.target.value)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
             <div>
                 <div id="waveform"></div>
@@ -212,8 +212,8 @@ function debounce(func, wait) {
 createApp({
     setup() {
         const clips = ref(JSON.parse(<?php echo json_encode($video['clips']); ?>));
-        const title = ref("今回のテーマ");
-        const subTitle = ref("アプリ制作の想い");
+        const title = ref(<?php echo json_encode($video['title']); ?>);
+        const subTitle = ref(<?php echo json_encode($video['subtitle']); ?>);
         const currentTranscriptIndex = ref(0);
         const isPlaying = ref(false);
         const mediaRecorder = ref(null);
@@ -444,12 +444,42 @@ createApp({
             selectClip(clips.value[currentTranscriptIndex.value]);
         };
 
-        const debouncedUpdate = debounce((index, value) => {
+        const debouncedUpdateClips = debounce((index, value) => {
             clips.value[index].transcript = value;
         }, 300);
 
+        const debouncedUpdateMetadata = debounce(async (key, value) => {
+            try {
+                const formData = new FormData();
+                formData.append('id', <?php echo $video['id']; ?>);
+                formData.append(key, value);
+
+                const response = await fetch('update.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || '更新に失敗しました');
+                }
+                console.log('メタデータ更新成功:', result);
+            } catch (error) {
+                console.error('メタデータ更新エラー:', error);
+            }
+        }, 300);
+
         const updateTranscript = (index, value) => {
-            debouncedUpdate(index, value);
+            debouncedUpdateClips(index, value);
+        };
+
+        const updateTitle = (value) => {
+            title.value = value;
+            debouncedUpdateMetadata('title', value);
+        };
+
+        const updateSubTitle = (value) => {
+            subTitle.value = value;
+            debouncedUpdateMetadata('subtitle', value);
         };
 
         const toggleZoom = (clip) => {
@@ -745,6 +775,8 @@ createApp({
             playClip,
             applyOffset,
             updateTranscript,
+            updateTitle,
+            updateSubTitle,
             toggleZoom,
             toggleTitle,
             selectPhrase,
