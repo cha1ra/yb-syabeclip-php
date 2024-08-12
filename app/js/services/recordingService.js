@@ -115,6 +115,7 @@ async function storeData(sessionId, transcripts) {
     const formData = new FormData();
     formData.append('src', sessionId);
     formData.append('transcripts', JSON.stringify(transcripts));
+    formData.append('csrf_token', csrfToken);
 
     const response = await fetch('store.php', {
         method: 'POST',
@@ -137,6 +138,7 @@ async function uploadChunk(chunk) {
     const formData = new FormData();
     console.log('uploadChunk', chunk.size);
     formData.append('videoChunk', chunk, `${sessionId}.webm`);
+    formData.append('csrf_token', csrfToken);
 
     const response = await fetch('save.php', {
         method: 'POST',
@@ -204,7 +206,7 @@ function startSpeechRecognition() {
             });
         };
 
-        // 文節ごとに区切った結果表示を擬似的に実現するロジック
+        // 文節ごとに区切った結果表示を擬似的に実現するロ��ック
         // 1. event.results.length が 初めて2 になった場合、初めて文節が出力されたと判断する
         // 2. その後、event.results.length が 1になるタイミングで再度保持する
         if (event.results.length === 2 && !isFirstPhraseAppeared) {

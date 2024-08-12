@@ -2,6 +2,14 @@
 // store.php
 
 require 'db.php';
+require_once 'csrf_token.php';
+
+// CSRFトークンの検証
+if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'CSRF検証に失敗しました']);
+    exit;
+}
 
 // POSTデータを取得
 $src = $_POST['src'];

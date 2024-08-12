@@ -1,6 +1,8 @@
 <?php
 require_once 'auth.php';
 requireLogin();
+require_once 'csrf_token.php';
+$csrf_token = generate_csrf_token();
 ?>
 
 <!DOCTYPE html>
@@ -29,6 +31,10 @@ requireLogin();
             </pre>
         </div>
     </div>
+
+    <script>
+        const csrfToken = '<?php echo $csrf_token; ?>';
+    </script>
 
     <script type="module" src="./js/main.js"></script>
 </body>

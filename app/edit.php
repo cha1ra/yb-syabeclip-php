@@ -21,7 +21,10 @@ $stmt->execute();
 $video = $stmt->fetch(PDO::FETCH_ASSOC);
 ?>
 
-
+<?php
+require_once 'csrf_token.php';
+$csrf_token = generate_csrf_token();
+?>
 
 <!DOCTYPE html>
 <html lang="ja">
@@ -233,6 +236,8 @@ createApp({
             redo: [] // やり直し
         });
 
+        const csrfToken = '<?php echo $csrf_token; ?>';
+
         // clipsの変更を監視して更新
         watch(clips, async (newClips, oldClips) => {
             try {
@@ -240,6 +245,7 @@ createApp({
                 formData.append('id', <?php echo $video['id']; ?>);
                 formData.append('src', <?php echo json_encode($video['src']); ?>);
                 formData.append('clips', JSON.stringify(newClips));
+                formData.append('csrf_token', csrfToken);
 
                 const response = await fetch('update.php', {
                     method: 'POST',
@@ -453,6 +459,7 @@ createApp({
                 const formData = new FormData();
                 formData.append('id', <?php echo $video['id']; ?>);
                 formData.append(key, value);
+                formData.append('csrf_token', csrfToken);
 
                 const response = await fetch('update.php', {
                     method: 'POST',
@@ -491,7 +498,7 @@ createApp({
         };
 
         const toggleTitle = (clip) => {
-            // clip.titleが存在しない場合はtrueにする
+            // clip.titleが存在しない場合はtrue��する
             if (!clip.title) {
                 clip.title = true;
             } else {
@@ -722,7 +729,7 @@ createApp({
                 currentClip.startOffset = startOffset;
                 currentClip.endOffset = endOffset;
 
-                // リージョンの再描画
+                // リージョンの��描画
                 drawRegions();
             });
 
@@ -788,7 +795,8 @@ createApp({
             changePlaybackSpeed,
             videoRef,
             downloadBtnRef,
-            recordingProgressRef
+            recordingProgressRef,
+            csrfToken
         };
     }
 }).mount('#app');
