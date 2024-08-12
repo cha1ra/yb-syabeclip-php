@@ -1,0 +1,9 @@
+RewriteEngine On
+RewriteBase /
+
+# ファイルやディレクトリが存在しない場合のみリライトルールを適用
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# すべてのリクエストをappディレクトリにリダイレクト
+RewriteRule ^(.*)$ app/$1 [L]
