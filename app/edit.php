@@ -44,6 +44,7 @@ $csrf_token = generate_csrf_token();
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body class="h-screen m-0 bg-slate-50">
+    <?php include 'components/navbar.php'; ?>
     <div id="app" class="h-screen grid grid-cols-2 lg:grid-cols-3">
         <div class="h-screen col-span-1 p-4">
             <!-- <div class="h-screen w-[56.25vh] my-0 mx-auto relative"> -->
@@ -92,106 +93,129 @@ $csrf_token = generate_csrf_token();
                         </svg>
                     </button>
                 </div>
-                <div class="mt-4 flex items-center space-x-4">
-                    <button ref="downloadBtnRef" class="bg-green-500 text-white px-4 py-2 rounded-md">
-                        DL
-                    </button>
-                    <progress ref="recordingProgressRef" max="100" value="0" class="w-full"></progress>
-                </div>
+
             </div>
         </div>
         <div class="relative w-full h-screen p-4 col-span-1 lg:col-span-2">
-            <div class="mb-4">
-                <label for="titleInput" class="block text-sm font-medium text-gray-700">Title</label>
-                <input type="text" id="titleInput" :value="title" @input="updateTitle($event.target.value)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
-            <div class="mb-4">
-                <label for="subtitleInput" class="block text-sm font-medium text-gray-700">Subtitle</label>
-                <input type="text" id="subtitleInput" :value="subTitle" @input="updateSubTitle($event.target.value)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-            </div>
+            <!-- 波形出力 -->
             <div>
                 <div id="waveform"></div>
                 <div id="wave-timeline"></div>
                 <input type="range" id="zoomSlider" min="1" max="200" v-model="zoomLevel" class="w-full mt-4">
             </div>
-            <div>
-                現在のビデオの時間: {{ videoRef?.currentTime }}
+            <!-- タブナビゲーション -->
+            <div class="mb-4">
+                <nav class="flex space-x-4 border-b" aria-label="Tabs">
+                    <button class="px-3 py-2 text-sm font-medium text-gray-600 focus:outline-none" :class="{ 'border-b-2 border-amber-500 text-amber-600': activeTab === 'edit' }" @click="activeTab = 'edit'">
+                        編集
+                    </button>
+                    <button class="px-3 py-2 text-sm font-medium text-gray-600 focus:outline-none" :class="{ 'border-b-2 border-amber-500 text-amber-600': activeTab === 'settings' }" @click="activeTab = 'settings'">
+                        設定
+                    </button>
+                    <button class="px-3 py-2 text-sm font-medium text-gray-600 focus:outline-none" :class="{ 'border-b-2 border-amber-500 text-amber-600': activeTab === 'output' }" @click="activeTab = 'output'">
+                        出力
+                    </button>
+                </nav>
             </div>
-            <div>
-                currentTranscriptIndex: {{ currentTranscriptIndex }} / {{ clips.length }}
-            </div>
-            <div id="clips" class="overflow-y-auto h-[calc(50vh)] border rounded-md p-4 mb-4 bg-white" tabindex="0" @keydown="handleKeyDown">
-                <div 
-                    v-for="(clip, index) in clips" 
-                    :key="clip.uuid" 
-                    :data-startOffset="clip.startOffset" 
-                    :data-endOffset="clip.endOffset" 
-                    class="bg-slate-50 border px-4 py-2 rounded-md mb-2 text-sm cursor-pointer" 
-                    :class="{'bg-yellow-200': currentTranscriptIndex === index}"
-                    @click="selectClip(clip)"
-                >
-                    <div class="mb-2">
-                        <div v-show="currentTranscriptIndex === index">
-                            <textarea :value="clip.transcript" @input="updateTranscript(index, $event.target.value)" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
-                            <div class="mt-2 flex flex-wrap items-center gap-2 relative">
-                                <template v-for="(phrase, phraseIndex) in clip.phrases" :key="phrase.transcriptStartOffset">
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer" @click="selectPhrase(clip, phrase)">
-                                        {{ phrase.text }}
-                                    </span>
-                                    <div v-if="phraseIndex < clip.phrases.length - 1" class="h-6 w-0.5 bg-gray-300 mx-1 relative group">
-                                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden group-hover:block bg-white shadow-md rounded px-2 py-1 text-xs">
-                                            <button @click="splitClipAtPhrase(clip, phraseIndex)" class="text-blue-600 hover:text-blue-800">
-                                                分割
-                                            </button>
+            <!-- 編集 -->
+            <div v-show="activeTab === 'edit'">
+                <div>
+                    現在のビデオの時間: {{ videoRef?.currentTime }}, currentTranscriptIndex: {{ currentTranscriptIndex }} / {{ clips.length }}
+                </div>
+                <div id="clips" class="overflow-y-auto h-[calc(50vh)] border rounded-md p-4 mb-4 bg-white" tabindex="0" @keydown="handleKeyDown">
+                    <div 
+                        v-for="(clip, index) in clips" 
+                        :key="clip.uuid" 
+                        :data-startOffset="clip.startOffset" 
+                        :data-endOffset="clip.endOffset" 
+                        class="bg-slate-50 border px-4 py-2 rounded-md mb-2 text-sm cursor-pointer" 
+                        :class="{'bg-yellow-200': currentTranscriptIndex === index}"
+                        @click="selectClip(clip)"
+                    >
+                        <div class="mb-2">
+                            <div v-show="currentTranscriptIndex === index">
+                                <textarea :value="clip.transcript" @input="updateTranscript(index, $event.target.value)" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                                <div class="mt-2 flex flex-wrap items-center gap-2 relative">
+                                    <template v-for="(phrase, phraseIndex) in clip.phrases" :key="phrase.transcriptStartOffset">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer" @click="selectPhrase(clip, phrase)">
+                                            {{ phrase.text }}
+                                        </span>
+                                        <div v-if="phraseIndex < clip.phrases.length - 1" class="h-6 w-0.5 bg-gray-300 mx-1 relative group">
+                                            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden group-hover:block bg-white shadow-md rounded px-2 py-1 text-xs">
+                                                <button @click="splitClipAtPhrase(clip, phraseIndex)" class="text-blue-600 hover:text-blue-800">
+                                                    分割
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                </template>
+                                    </template>
+                                </div>
+                            </div>
+                            <div v-show="currentTranscriptIndex !== index">
+                                {{ clip.transcript }}
                             </div>
                         </div>
-                        <div v-show="currentTranscriptIndex !== index">
-                            {{ clip.transcript }}
+                        <div class="flex gap-2 items-center" v-if="currentTranscriptIndex === index">
+                            <button @click="playClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
+                                クリップだけ再生
+                            </button>
+                            <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
+                            <button @click="duplicateClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
+                                複製
+                            </button>
+                            <button @click="splitClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
+                                分割
+                            </button>
+                            <button @click="deleteClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
+                                削除
+                            </button>
+                            <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
+                            <button @click="toggleZoom(clip)" 
+                                    :class="{'bg-yellow-900': !!clip.zoom && clip.zoom > 1, 'bg-slate-700': !clip.zoom || clip.zoom <= 1}" 
+                                    class="rounded text-white px-2 py-1 shadow-sm">
+                                ズーム
+                            </button>
+                            <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
+                            <button 
+                                class="rounded text-white px-2 py-1 shadow-sm" 
+                                @click="toggleTitle(clip)"
+                                :class="{'bg-yellow-900': !!clip.title, 'bg-slate-700': !clip.title}"
+                            >
+                                タイトル
+                            </button>
                         </div>
-                    </div>
-                    <div class="flex gap-2 items-center" v-if="currentTranscriptIndex === index">
-                        <button @click="playClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
-                            クリップだけ再生
-                        </button>
-                        <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
-                        <button @click="duplicateClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
-                            複製
-                        </button>
-                        <button @click="splitClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
-                            分割
-                        </button>
-                        <button @click="deleteClip(clip)" class="rounded bg-slate-700 text-white px-2 py-1 shadow-sm">
-                            削除
-                        </button>
-                        <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
-                        <button @click="toggleZoom(clip)" 
-                                :class="{'bg-yellow-900': !!clip.zoom && clip.zoom > 1, 'bg-slate-700': !clip.zoom || clip.zoom <= 1}" 
-                                class="rounded text-white px-2 py-1 shadow-sm">
-                            ズーム
-                        </button>
-                        <div class="border-l border-slate-700 h-full mx-3" style="height: 20px;"></div>
-                        <button 
-                            class="rounded text-white px-2 py-1 shadow-sm" 
-                            @click="toggleTitle(clip)"
-                            :class="{'bg-yellow-900': !!clip.title, 'bg-slate-700': !clip.title}"
-                        >
-                            タイトル
-                        </button>
                     </div>
                 </div>
             </div>
-            <details>
-                <summary class="bg-gray-500 text-white px-4 py-2 rounded-md cursor-pointer">JSON での表示</summary>
-                <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full text-xs">{{ JSON.stringify(clips, null, 2) }}</pre>
-            </details>
-            <!-- オフセット -->
-            <div class="mb-4">
-                <label for="offsetInput" class="block text-sm font-medium text-gray-700">オフセット (ms)</label>
-                <input type="number" id="offsetInput" v-model.number="offset" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                <button @click="applyOffset" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md">実施</button>
+            <!-- 設定 -->
+            <div v-show="activeTab === 'settings'">
+                <div class="mb-4">
+                    <label for="titleInput" class="block text-sm font-medium text-gray-700">タイトル</label>
+                    <input type="text" id="titleInput" :value="title" @input="updateTitle($event.target.value)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div class="mb-4">
+                    <label for="subtitleInput" class="block text-sm font-medium text-gray-700">サブタイトル</label>
+                    <input type="text" id="subtitleInput" :value="subTitle" @input="updateSubTitle($event.target.value)" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <details>
+                    <summary class="bg-gray-500 text-white px-4 py-2 rounded-md cursor-pointer">JSON での表示</summary>
+                    <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full text-xs">{{ JSON.stringify(clips, null, 2) }}</pre>
+                </details>
+                <!-- オフセット -->
+                <div class="mb-4">
+                    <label for="offsetInput" class="block text-sm font-medium text-gray-700">オフセット (ms)</label>
+                    <input type="number" id="offsetInput" v-model.number="offset" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <button @click="applyOffset" class="mt-2 bg-amber-500 text-white px-4 py-2 rounded-md">実施</button>
+                </div>
+            </div>
+            <!-- 出力 -->
+            <div v-show="activeTab === 'output'">
+                <button ref="downloadBtnRef" class="bg-green-500 text-white px-4 py-2 rounded-md">
+                    ダウンロード
+                </button>
+                <div class="mt-4 flex items-center space-x-4">
+ 
+                    <progress ref="recordingProgressRef" max="100" value="0" class="w-full"></progress>
+                </div>
             </div>
         </div>
     </div>
@@ -236,6 +260,8 @@ createApp({
         });
 
         const csrfToken = '<?php echo $csrf_token; ?>';
+
+        const activeTab = ref('edit');
 
         // clipsの変更を監視して更新
         watch(clips, async (newClips, oldClips) => {
@@ -795,7 +821,8 @@ createApp({
             videoRef,
             downloadBtnRef,
             recordingProgressRef,
-            csrfToken
+            csrfToken,
+            activeTab
         };
     }
 }).mount('#app');

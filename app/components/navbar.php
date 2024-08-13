@@ -1,6 +1,13 @@
+<?php
+require_once 'db.php';
+
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
+$stmt->execute([':id' => $_SESSION['user_id']]);
+$user = $stmt->fetch();
+?>
 <header>
     <nav class="bg-white shadow-md">
-        <div class="container mx-auto px-4">
+        <div class="mx-auto px-4">
             <div class="flex justify-between items-center py-4">
                 <ul>
                     <li>
@@ -14,9 +21,9 @@
                         ようこそ、<?php echo htmlspecialchars($user['name']); ?>さん  
                     </li>
                     <li>
-                        <a href="create.php" class="bg-amber-500 hover:bg-blue-700 text-white py-2 px-4 rounded">動画作成</a>
+                        <a href="create.php" class="bg-amber-500 hover:bg-amber-700 transition text-white py-2 px-4 rounded">動画作成</a>
                     <li>
-                        <a href="logout.php" class="bg-gray-700 hover:bg-red-700 text-white py-2 px-4 rounded">ログアウト</a>
+                        <a href="logout.php" class="bg-gray-700 hover:bg-gray-900 transition text-white py-2 px-4 rounded">ログアウト</a>
                     </li>
                 </ul>
             </div>
