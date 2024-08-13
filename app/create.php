@@ -25,7 +25,7 @@ $csrf_token = generate_csrf_token();
                 <button id="stopBtn" disabled class="bg-red-500 text-white px-4 py-2 rounded-md hidden">Stop</button>
             </div>
         </div>
-        <div class="relative w-full h-screen p-4">
+        <div class="relative w-full h-screen p-4 hidden md:block">
             <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full">
                 書き起こし結果の表示
             </pre>
