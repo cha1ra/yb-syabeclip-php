@@ -24,10 +24,12 @@ $csrf_token = generate_csrf_token();
             </div>
             <div class="absolute bottom-2 left-0 w-full flex justify-center gap-2 z-10">
                 <button id="switchCameraBtn" class="bg-gray-500 text-white px-4 py-2 rounded-md">カメラ切替</button>
-                <button id="startBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md">Start</button>
-                <button id="stopBtn" disabled class="bg-red-500 text-white px-4 py-2 rounded-md hidden">Stop</button>
+                <button id="startBtn" class="bg-amber-500 text-white px-4 py-2 rounded-md">スタート</button>
+                <button id="stopBtn" disabled class="bg-red-500 text-white px-4 py-2 rounded-md hidden">停止</button>
             </div>
-            <div class="absolute top-2 left-0 w-full flex justify-center gap-2 z-10">
+        </div>
+        <div class="relative w-full h-full hidden md:block px-4">
+            <div class="w-full flex gap-2 mb-4">
                 <select id="videoSource" class="bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">ビデオソースを選択</option>
                 </select>
@@ -35,10 +37,8 @@ $csrf_token = generate_csrf_token();
                     <option value="">オーディオソースを選択</option>
                 </select>
             </div>
-        </div>
-        <div class="relative w-full h-full p-4 hidden md:block">
-            <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full">
-                書き起こし結果の表示
+            <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-96 overflow-y-auto">
+書き起こし結果の表示...
             </pre>
         </div>
     </div>
