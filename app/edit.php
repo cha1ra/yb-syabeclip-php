@@ -55,7 +55,7 @@ $csrf_token = generate_csrf_token();
                         <source src='./uploads/<?php echo $video['src']; ?>' type='video/webm'>
                         Your browser does not support the video tag.
                     </video>
-                    <canvas id="videoCanvas" width="720" height="1280" class="absolute top-0 left-0" style="max-width: 360px;"></canvas>
+                    <canvas id="videoCanvas" width="1080" height="1920" class="absolute top-0 left-0" style="max-width: 360px;"></canvas>
                 </div>
     
                 <div class="bottom-2 left-0 w-full flex justify-center gap-2 z-10">
