@@ -42,6 +42,7 @@ $csrf_token = generate_csrf_token();
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/hover.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="icon" href="./assets/images/favicon.ico">
 </head>
 <body class="h-screen m-0 bg-slate-50">
     <?php include 'components/navbar.php'; ?>
@@ -129,7 +130,7 @@ $csrf_token = generate_csrf_token();
                         :data-startOffset="clip.startOffset" 
                         :data-endOffset="clip.endOffset" 
                         class="bg-slate-50 border px-4 py-2 rounded-md mb-2 text-sm cursor-pointer" 
-                        :class="{'bg-yellow-200': currentTranscriptIndex === index}"
+                        :class="{'bg-amber-200': currentTranscriptIndex === index}"
                         @click="selectClip(clip)"
                     >
                         <div class="mb-2">
@@ -473,6 +474,7 @@ createApp({
                 clip.endOffset += offset.value;
             });
             selectClip(clips.value[currentTranscriptIndex.value]);
+            drawRegions()
         };
 
         const debouncedUpdateClips = debounce((index, value) => {
@@ -712,9 +714,10 @@ createApp({
 
             waveform = WaveSurfer.create({
                 container: '#waveform',
-                waveColor: 'violet',
-                progressColor: 'purple',
+                waveColor: '#b45309',
+                progressColor: '#7c2d12',
                 backend: 'MediaElement',
+                dragToSeek: true,
                 url: './uploads/<?php echo $video['src']; ?>',
                 plugins: [
                     WaveSurfer.Timeline.create({
