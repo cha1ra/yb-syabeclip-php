@@ -5,52 +5,101 @@ let transcripts = [];
 let startTime;
 let recordingStartTime; // 撮影開始日時を保持する変数を追加
 
+let currentStream;
+let facingMode = 'user';
+
 export async function startPreview() {
     const preview = document.getElementById('preview');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const isMobile = window.innerWidth < window.innerHeight;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const width = 720;
     const height = 1280;
     const aspectRatio = isMobile ? height / width : width / height;
+
+    await updateVideoSourceList();
 
     let constraints = {
         audio: true,
         video: {
             width: { ideal: width },
-            aspectRatio: aspectRatio
+            aspectRatio: aspectRatio,
+            facingMode: facingMode
         }
     };
 
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    preview.srcObject = stream;
+    try {
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        preview.srcObject = currentStream;
 
-    canvas.width = width;
-    canvas.height = height;
+        canvas.width = width;
+        canvas.height = height;
 
-    if (isMobile) {
-        preview.style.transform = 'translate(-50%, -50%) rotate(90deg)';
-        preview.style.transformOrigin = 'center center';
-        preview.style.width = '100%';
-        preview.style.height = 'auto';
-        preview.style.position = 'absolute';
-        preview.style.top = '50%';
-        preview.style.left = '50%';
-    } else {
-        preview.style.width = '100%';
-        preview.style.height = 'auto';
-    }
-
-    async function draw() {
-        if (preview.readyState === preview.HAVE_ENOUGH_DATA) {
-            ctx.save();
-            ctx.scale(-1, 1);
-            ctx.drawImage(preview, -canvas.width, 0, canvas.width, canvas.height);
-            ctx.restore();
+        if (isMobile) {
+            preview.style.transform = 'translate(-50%, -50%) rotate(90deg)';
+            preview.style.transformOrigin = 'center center';
+            preview.style.width = '100%';
+            preview.style.height = 'auto';
+            preview.style.position = 'absolute';
+            preview.style.top = '50%';
+            preview.style.left = '50%';
+        } else {
+            preview.style.width = '100%';
+            preview.style.height = 'auto';
         }
-        requestAnimationFrame(draw);
+
+        async function draw() {
+            if (preview.readyState === preview.HAVE_ENOUGH_DATA) {
+                ctx.save();
+                ctx.scale(-1, 1);
+                ctx.drawImage(preview, -canvas.width, 0, canvas.width, canvas.height);
+                ctx.restore();
+            }
+            requestAnimationFrame(draw);
+        }
+        draw();
+    } catch (error) {
+        console.error('Error accessing media devices:', error);
     }
-    draw();
+}
+
+async function updateVideoSourceList() {
+    const videoSource = document.getElementById('videoSource');
+    videoSource.innerHTML = '<option value="">ビデオソースを選択</option>';
+
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        videoDevices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `カメラ ${videoSource.options.length}`;
+            videoSource.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error enumerating video devices:', error);
+    }
+}
+
+export function switchCamera() {
+    facingMode = facingMode === 'user' ? 'environment' : 'user';
+    startPreview();
+}
+
+export function changeVideoSource(deviceId) {
+    const constraints = {
+        audio: true,
+        video: { deviceId: { exact: deviceId } }
+    };
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+            currentStream = stream;
+            const preview = document.getElementById('preview');
+            preview.srcObject = stream;
+        })
+        .catch(error => {
+            console.error('Error changing video source:', error);
+        });
 }
 
 export async function startRecording() {
@@ -168,7 +217,7 @@ function startSpeechRecognition() {
 
     // 一時的な結果を基に文節ごとの開始・終了時間を保持する
     let phrases = [];
-    let isFirstPhraseAppeared = false; // 初めて文節が出力されたかどうかを保持する変数
+    let isFirstPhraseAppeared = false; // 初めて文節が出力されかどうかを保持する変数
 
     recognition.onspeechstart = () => {
         console.log('speechstart');
@@ -206,7 +255,7 @@ function startSpeechRecognition() {
             });
         };
 
-        // 文節ごとに区切った結果表示を擬似的に実現するロ��ック
+        // 文節ごとに区切った結果表示を擬似的に実現するロック
         // 1. event.results.length が 初めて2 になった場合、初めて文節が出力されたと判断する
         // 2. その後、event.results.length が 1になるタイミングで再度保持する
         if (event.results.length === 2 && !isFirstPhraseAppeared) {

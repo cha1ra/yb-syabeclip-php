@@ -1,5 +1,5 @@
-import { startPreview, startRecording, stopRecording } from './services/recordingService.js';
+import { startPreview, startRecording, stopRecording, switchCamera, changeVideoSource } from './services/recordingService.js';
 import { setupEventListeners } from './dom/setup.js';
 
-setupEventListeners(startRecording, stopRecording);
+setupEventListeners(startRecording, stopRecording, switchCamera, changeVideoSource);
 startPreview();

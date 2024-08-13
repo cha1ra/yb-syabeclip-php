@@ -10,7 +10,8 @@ $csrf_token = generate_csrf_token();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Recorder</title>
+    <title>新規動画作成 | しゃべクリップ</title>
+    <link rel="icon" href="./assets/images/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="h-screen m-0 bg-slate-50">
@@ -21,8 +22,14 @@ $csrf_token = generate_csrf_token();
                 <canvas id="canvas" class="absolute top-0 left-0 w-full h-auto"></canvas>
             </div>
             <div class="absolute bottom-2 left-0 w-full flex justify-center gap-2 z-10">
+                <button id="switchCameraBtn" class="bg-gray-500 text-white px-4 py-2 rounded-md">カメラ切替</button>
                 <button id="startBtn" class="bg-blue-500 text-white px-4 py-2 rounded-md">Start</button>
                 <button id="stopBtn" disabled class="bg-red-500 text-white px-4 py-2 rounded-md hidden">Stop</button>
+            </div>
+            <div class="absolute top-2 left-0 w-full flex justify-center gap-2 z-10">
+                <select id="videoSource" class="bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">ビデオソースを選択</option>
+                </select>
             </div>
         </div>
         <div class="relative w-full h-screen p-4 hidden md:block">
