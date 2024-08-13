@@ -19,8 +19,11 @@ export async function startPreview() {
 
     await updateVideoAndAudioSourceList();
 
+    const savedVideoSource = localStorage.getItem('selectedVideoSource');
+    const savedAudioSource = localStorage.getItem('selectedAudioSource');
+
     let constraints = {
-        audio: true,
+        audio: savedAudioSource ? { deviceId: { exact: savedAudioSource } } : true,
         video: {
             width: { ideal: width },
             aspectRatio: aspectRatio,
@@ -28,9 +31,24 @@ export async function startPreview() {
         }
     };
 
+    if (savedVideoSource) {
+        constraints.video.deviceId = { exact: savedVideoSource };
+    }
+
     try {
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         preview.srcObject = currentStream;
+
+        // オーディオソースを適用
+        if (savedAudioSource) {
+            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: savedAudioSource } } });
+            const audioTrack = audioStream.getAudioTracks()[0];
+            const oldAudioTrack = currentStream.getAudioTracks()[0];
+            if (oldAudioTrack) {
+                currentStream.removeTrack(oldAudioTrack);
+            }
+            currentStream.addTrack(audioTrack);
+        }
 
         canvas.width = width;
         canvas.height = height;
@@ -74,11 +92,17 @@ async function updateVideoAndAudioSourceList() {
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         const audioDevices = devices.filter(device => device.kind === 'audioinput');
 
+        const savedVideoSource = localStorage.getItem('selectedVideoSource');
+        const savedAudioSource = localStorage.getItem('selectedAudioSource');
+
         videoDevices.forEach(device => {
             const option = document.createElement('option');
             option.value = device.deviceId;
             option.text = device.label || `カメラ ${videoSource.options.length}`;
             videoSource.appendChild(option);
+            if (device.deviceId === savedVideoSource) {
+                option.selected = true;
+            }
         });
 
         audioDevices.forEach(device => {
@@ -86,7 +110,22 @@ async function updateVideoAndAudioSourceList() {
             option.value = device.deviceId;
             option.text = device.label || `マイク ${audioSource.options.length}`;
             audioSource.appendChild(option);
+            if (device.deviceId === savedAudioSource) {
+                option.selected = true;
+            }
         });
+
+        // 保存されたソースを適用
+        if (savedVideoSource) {
+            changeVideoSource(savedVideoSource);
+        } else if (videoDevices.length > 0) {
+            changeVideoSource(videoDevices[0].deviceId);
+        }
+        if (savedAudioSource) {
+            changeAudioSource(savedAudioSource);
+        } else if (audioDevices.length > 0) {
+            changeAudioSource(audioDevices[0].deviceId);
+        }
     } catch (error) {
         console.error('Error enumerating devices:', error);
     }
@@ -132,6 +171,9 @@ export function changeVideoSource(deviceId) {
                 preview.style.width = '100%';
                 preview.style.height = 'auto';
             }
+
+            // 選択されたソースをローカルストレージに保存
+            localStorage.setItem('selectedVideoSource', deviceId);
         })
         .catch(error => {
             console.error('ビデオソースの変更エラー:', error);
@@ -148,16 +190,19 @@ export function changeAudioSource(deviceId) {
             audioTracks.forEach(track => track.stop());
             currentStream.removeTrack(audioTracks[0]);
             currentStream.addTrack(stream.getAudioTracks()[0]);
+
+            // 選択されたソースをローカルストレージに保存
+            localStorage.setItem('selectedAudioSource', deviceId);
         })
         .catch(error => {
-            console.error('Error changing audio source:', error);
+            console.error('オーディオソースの変更エラー:', error);
         });
 }
 
 export async function startRecording() {
     const preview = document.getElementById('preview');
     
-    // 現在のストリームを使用
+    // 在のストリームを使用
     const videoStream = preview.captureStream(30); // 30fpsを指定
     const combinedStream = new MediaStream([...videoStream.getVideoTracks(), ...currentStream.getAudioTracks()]);
     
@@ -298,7 +343,7 @@ function startSpeechRecognition() {
 
         // 文節ごとに区切った結果表示を擬似的に実現するロック
         // 1. event.results.length が 初めて2 になった場合、初めて文節が出力されたと判断する
-        // 2. その後、event.results.length が 1になるタイミングで再度保持���る
+        // 2. その後、event.results.length が 1になるタイミングで再度保持る
         if (event.results.length === 2 && !isFirstPhraseAppeared) {
             handleFirstPhrase();
         }

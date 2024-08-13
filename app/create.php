@@ -15,8 +15,9 @@ $csrf_token = generate_csrf_token();
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="h-screen m-0 bg-slate-50">
-    <div class="h-screen grid grid-cols-1 md:grid-cols-2 m-0 mx-auto">
-        <div class="h-screen w-[56.25vh] m-0 mx-auto relative">
+    <?php include 'components/navbar.php'; ?>
+    <div class="grid grid-cols-1 md:grid-cols-2 m-0 mx-auto py-6">
+        <div class="h-[80vh] w-[45vh] m-0 mx-auto my-auto relative">
             <div class="relative w-full h-auto">
                 <video id="preview" autoplay muted playsinline class="absolute top-0 left-0 opacity-0 w-full h-auto"></video>
                 <canvas id="canvas" class="absolute top-0 left-0 w-full h-auto"></canvas>
@@ -35,7 +36,7 @@ $csrf_token = generate_csrf_token();
                 </select>
             </div>
         </div>
-        <div class="relative w-full h-screen p-4 hidden md:block">
+        <div class="relative w-full h-full p-4 hidden md:block">
             <pre id="jsonDisplay" class="bg-gray-100 p-4 rounded-md overflow-auto h-full">
                 書き起こし結果の表示
             </pre>
