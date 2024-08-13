@@ -98,18 +98,43 @@ export function switchCamera() {
 }
 
 export function changeVideoSource(deviceId) {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const width = 720;
+    const height = 1280;
+    const aspectRatio = isMobile ? height / width : width / height;
+
     const constraints = {
         audio: true,
-        video: { deviceId: { exact: deviceId } }
+        video: {
+            deviceId: { exact: deviceId },
+            width: { ideal: width },
+            height: { ideal: height },
+            aspectRatio: aspectRatio
+        }
     };
+
     navigator.mediaDevices.getUserMedia(constraints)
         .then(stream => {
             currentStream = stream;
             const preview = document.getElementById('preview');
             preview.srcObject = stream;
+
+            // プレビューのスタイルを更新
+            if (isMobile) {
+                preview.style.transform = 'translate(-50%, -50%) rotate(90deg)';
+                preview.style.transformOrigin = 'center center';
+                preview.style.width = '100%';
+                preview.style.height = 'auto';
+                preview.style.position = 'absolute';
+                preview.style.top = '50%';
+                preview.style.left = '50%';
+            } else {
+                preview.style.width = '100%';
+                preview.style.height = 'auto';
+            }
         })
         .catch(error => {
-            console.error('Error changing video source:', error);
+            console.error('ビデオソースの変更エラー:', error);
         });
 }
 
@@ -131,24 +156,13 @@ export function changeAudioSource(deviceId) {
 
 export async function startRecording() {
     const preview = document.getElementById('preview');
-    const isMobile = window.innerWidth < window.innerHeight;
-    const width = 720;
-    const height = 1280;
-    const aspectRatio = isMobile ? height / width : width / height;
-
-    let constraints = {
-        audio: true,
-        video: {
-            width: { ideal: width },
-            aspectRatio: aspectRatio
-        }
-    };
-
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    preview.srcObject = stream;
-
-    const combinedStream = new MediaStream([...stream.getVideoTracks(), ...stream.getAudioTracks()]);
-    mediaRecorder = new MediaRecorder(combinedStream);
+    
+    // 現在のストリームを使用
+    const videoStream = preview.captureStream(30); // 30fpsを指定
+    const combinedStream = new MediaStream([...videoStream.getVideoTracks(), ...currentStream.getAudioTracks()]);
+    
+    const options = { mimeType: 'video/webm; codecs=vp9', videoBitsPerSecond: 2500000 };
+    mediaRecorder = new MediaRecorder(combinedStream, options);
     mediaRecorder.ondataavailable = handleDataAvailable;
     mediaRecorder.start(10000);
 
@@ -284,7 +298,7 @@ function startSpeechRecognition() {
 
         // 文節ごとに区切った結果表示を擬似的に実現するロック
         // 1. event.results.length が 初めて2 になった場合、初めて文節が出力されたと判断する
-        // 2. その後、event.results.length が 1になるタイミングで再度保持する
+        // 2. その後、event.results.length が 1になるタイミングで再度保持���る
         if (event.results.length === 2 && !isFirstPhraseAppeared) {
             handleFirstPhrase();
         }
@@ -309,7 +323,7 @@ function startSpeechRecognition() {
             console.log(JSON.stringify(transcripts, null, 2));
             document.getElementById('jsonDisplay').textContent = JSON.stringify(transcripts, null, 2);
 
-            // 次に文節を保持するために初期化
+            // 次に文節を保持するめに初期化
             phrases = [];
             isFirstPhraseAppeared = false;
         }
