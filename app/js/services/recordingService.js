@@ -17,7 +17,7 @@ export async function startPreview() {
     const height = 1280;
     const aspectRatio = isMobile ? height / width : width / height;
 
-    await updateVideoSourceList();
+    await updateVideoAndAudioSourceList();
 
     let constraints = {
         audio: true,
@@ -63,21 +63,32 @@ export async function startPreview() {
     }
 }
 
-async function updateVideoSourceList() {
+async function updateVideoAndAudioSourceList() {
     const videoSource = document.getElementById('videoSource');
+    const audioSource = document.getElementById('audioSource');
     videoSource.innerHTML = '<option value="">ビデオソースを選択</option>';
+    audioSource.innerHTML = '<option value="">オーディオソースを選択</option>';
 
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        const audioDevices = devices.filter(device => device.kind === 'audioinput');
+
         videoDevices.forEach(device => {
             const option = document.createElement('option');
             option.value = device.deviceId;
             option.text = device.label || `カメラ ${videoSource.options.length}`;
             videoSource.appendChild(option);
         });
+
+        audioDevices.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `マイク ${audioSource.options.length}`;
+            audioSource.appendChild(option);
+        });
     } catch (error) {
-        console.error('Error enumerating video devices:', error);
+        console.error('Error enumerating devices:', error);
     }
 }
 
@@ -99,6 +110,22 @@ export function changeVideoSource(deviceId) {
         })
         .catch(error => {
             console.error('Error changing video source:', error);
+        });
+}
+
+export function changeAudioSource(deviceId) {
+    const constraints = {
+        audio: { deviceId: { exact: deviceId } }
+    };
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+            const audioTracks = currentStream.getAudioTracks();
+            audioTracks.forEach(track => track.stop());
+            currentStream.removeTrack(audioTracks[0]);
+            currentStream.addTrack(stream.getAudioTracks()[0]);
+        })
+        .catch(error => {
+            console.error('Error changing audio source:', error);
         });
 }
 
